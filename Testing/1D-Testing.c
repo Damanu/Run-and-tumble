@@ -61,7 +61,14 @@ int * init_lat(int N,float phi)
 	{
 		ind=rand_index(len);
 		printf("chosen indizes: %d\n",ind);
-		lattice[ind]=rnddirection();
+		if(lattice[ind]==0) 
+		{
+			lattice[ind]=rnddirection();
+		}
+		else
+		{
+			i--;
+		}
 	}
 	return lattice;
 }
