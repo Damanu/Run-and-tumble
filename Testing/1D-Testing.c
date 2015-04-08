@@ -13,11 +13,11 @@
 
 //--------------Prototypes-----------------------
 int * init_lat(int N,float phi);
-int rand_index(int arraylength);
+int rand_index(double arraylength);
 int length(int * array);
 int rnddirection(); 
 //----------------Main Program--------------------
-void main() 
+int main() 
 {
 	printf("--------------------\n");
 	printf("1D-Testing started\n");
@@ -47,7 +47,7 @@ void main()
 int * init_lat(int N,float phi) 
 {
 	long int seed = 123456789;
-	lattice = new int[N];				
+	static int lattice[200];				//allocating 200*sizeof(integer) space for the lattice array --> should be allocated dynamically, but didnt work till now	
 	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	int M = roundf(M_);
 //	printf("%d*%f= %d",N,phi,M);
@@ -60,7 +60,6 @@ int * init_lat(int N,float phi)
 	for(i=0;i<M;i++)  			//loop to find random indizes
 	{
 		ind=rand_index(len);
-		 //here is a problem, i wont get the right index cause i cut something off... need to fix this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		printf("chosen indizes: %d\n",ind);
 		lattice[ind]=rnddirection();
 	}
@@ -69,14 +68,15 @@ int * init_lat(int N,float phi)
 
 //--rand_index--
 //returns a random index of given array
-int rand_index(int arraylength) 
+int rand_index(double arraylength) 
 {
 	long int seed = 123456789;
 	double interval = 1/arraylength;	//separate the space 0-1 into N pieces with length interval
+	printf("interval: %f\n",interval);
 	int i = 0;
 	double rndnum;			
 	rndnum = ran3(&seed);			//pick a random number out of the spacing 0-1
-	int index = round(rndnum/interval);	//evaluate the index of the lattice, this index is a randomly chosen one		
+	int index = roundf(rndnum/interval);	//evaluate the index of the lattice, this index is a randomly chosen one		
 	return index;
 }
 //--direction--
@@ -90,12 +90,12 @@ int rnddirection()
 	rndnum = ran3(&seed);
 	if (rndnum < 0.5)
 	{
-		printf("-1");
+//		printf("-1");
 		return -1;
 	}
 	else 
 	{
-		printf("1");
+//		printf("1");
 		return 1;
 	}
 }
