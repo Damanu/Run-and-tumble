@@ -10,19 +10,20 @@
 #include "./../Lib/random.h"
 #include <math.h>
 #include <string.h>
-
+#include <time.h>
 //--------------Prototypes-----------------------
-int * init_lat(int N,float phi);
+int * init_lat(int N,int M,float phi);
 int rand_index(double arraylength);
 int length(int * array);
 int rnddirection(); 
+int * timestep(int * lattice,int N, int M, double alph);
 //----------------Main Program--------------------
 int main() 
 {
 	printf("--------------------\n");
 	printf("1D-Testing started\n");
 	float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
-	int M,N;				//M: total number of particles; N: total number of sites (or length of lattice array)
+	int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
 	char word;
 	printf("Number of sites (N): ");
 	scanf("\n%d", &N);			//get number of sites
@@ -30,12 +31,21 @@ int main()
 	scanf("\n%f", &phi);			//get concentration
 	printf("Probability for tumbling (alpha): ");
 	scanf("\n%f", &alph);			//get tumbling probability
-	int *lattice;				//create lattice with N sites
-	int i=0;			
-	lattice = init_lat(N,phi);
-	for(i=0;i<N;i++) 
+	printf("Total Time for evolution (T): ");
+	scanf("\n%d",&tottime);
+	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+	M = roundf(M_);
+	int *lattice;				//declare lattice 
+	int i=0,ii=0;			
+	lattice = init_lat(N,M,phi);
+	for(ii=0;ii<tottime;ii++)
 	{
-		printf("%d\n",*(lattice+i));
+		for(i=0;i<N;i++) 
+		{
+			printf("%d",*(lattice+i));
+		}
+		printf("\n");
+		lattice=timestep(lattice,N,M,alph);
 	}
 }
 //-----------------Functions-----------------------
@@ -44,12 +54,10 @@ int main()
 //initialises the Lattice with cells on it
 //input:int N (number of sites),float phi (particle concentration)
 //output: int array lattice (lattice with particles at timestep 0)
-int * init_lat(int N,float phi) 
+int * init_lat(int N,int M,float phi) 
 {
 	long int seed = 123456789;
-	static int lattice[200];				//allocating 200*sizeof(integer) space for the lattice array --> should be allocated dynamically, but didnt work till now	
-	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
-	int M = roundf(M_);
+	static int lattice[3000];				//allocating 3000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 //	printf("%d*%f= %d",N,phi,M);
 	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
@@ -60,7 +68,7 @@ int * init_lat(int N,float phi)
 	for(i=0;i<M;i++)  			//loop to find random indizes
 	{
 		ind=rand_index(len);
-		printf("chosen indizes: %d\n",ind);
+//		printf("chosen indizes: %d\n",ind);
 		if(lattice[ind]==0) 
 		{
 			lattice[ind]=rnddirection();
@@ -74,12 +82,14 @@ int * init_lat(int N,float phi)
 }
 
 //--rand_index--
-//returns a random index of given array
+//returns a random index between 0 and arraylength
+//input: double arraylength
+//output: int random index
 int rand_index(double arraylength) 
 {
 	long int seed = 123456789;
 	double interval = 1/arraylength;	//separate the space 0-1 into N pieces with length interval
-	printf("interval: %f\n",interval);
+//	printf("interval: %f\n",interval);
 	int i = 0;
 	double rndnum;			
 	rndnum = ran3(&seed);			//pick a random number out of the spacing 0-1
@@ -91,9 +101,11 @@ int rand_index(double arraylength)
 //input none
 //output: -1 or 1 as int
 int rnddirection() 
-{
-	long int seed =987654321;
+{		
+	time_t t= time(0);
 	double rndnum;
+	long int seed=t;
+	printf("seed = %ld\n",seed);
 	rndnum = ran3(&seed);
 	if (rndnum < 0.5)
 	{
@@ -106,8 +118,88 @@ int rnddirection()
 		return 1;
 	}
 }
-
-int length(int * array) 
+//--timestep--
+//input: int pointer to first element of lattice (allocated in init)
+//output: int * lattice (evolution of lattice after one timestep)
+int * timestep(int * lattice,int N,int M, double alph)
 {
-	return(sizeof(array)/sizeof(int));
+	int i = 0;
+	int ind;
+//	printf("M= %d\n",M);
+	for(i = 0; i < M; i++)
+	{
+		ind=rand_index(N);
+//		printf("timestep .. lattice[ind]= %d\n",lattice[ind]);
+		if(lattice[ind] == 0) //if there is no particle try it again
+		{
+			i--;
+		}
+		else
+		{
+			if(ind == N-1) //if upper periodic boundary 
+			{
+				if(lattice[ind] > 0) 		//find out the direction
+				{
+					if(lattice[0] == 0) 	//find out if "the way if free"
+					{
+						lattice[ind]=0; //move
+						lattice[0]=1;
+					}
+				}
+				else
+				{
+					if(lattice[ind-1] == 0)	//if the way is free
+					{
+						lattice[ind]=0;		//move
+						lattice[ind-1]=-1;
+					}	
+				}
+			}
+			else
+			{
+				if(ind == 0)	//if lower periodic boundary
+				{
+					if(lattice[ind] > 0) 			//find out the direction
+					{
+						if(lattice[ind+1] == 0) 	//find out if "the way if free"
+						{
+							lattice[ind]=0;		//move
+							lattice[ind+1]=1;
+						}
+					}
+					else
+					{
+						if(lattice[N-1] == 0) 		//if the way if free
+						{
+							lattice[ind]=0;		//move
+							lattice[N-1]=-1;
+						}	
+					
+					}
+				}
+				else
+				{
+					if(lattice[ind] > 0) 			//find out the direction
+					{
+						if(lattice[ind+1] == 0) 	//find out if "the way if free"
+						{
+							lattice[ind]=0;		//move
+							lattice[ind+1]=1;
+						}
+					}
+					else	
+					{
+						if(lattice[ind-1] == 0)		//if the way is free
+						{
+							lattice[ind]=0;		//move
+							lattice[ind-1]=-1;
+						}
+					}	
+				}
+			}
+		}
+	}
+	return lattice;
 }
+
+
