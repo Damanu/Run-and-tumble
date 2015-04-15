@@ -15,7 +15,9 @@
 #include <string.h>
 #include <time.h>
 //#include <fcntl.h>
-#include <stdio.h>
+//#include <stdio.h>
+//#include <time.h>
+#include <stdlib.h>
 #include <stdlib.h>
 //#include <unistd.h>
 //--------------Prototypes-----------------------
@@ -28,8 +30,12 @@ char * geturand();
 //----------------Main Program--------------------
 int main() 
 {
-	geturand();
-	printf("--------------------\n");
+	srand(time(0));
+	//double r = rand()/(double)RAND_MAX;
+	long t=time(0);
+	double r=ran3(&t);
+	printf("%lf",r);
+	printf("\n--------------------\n");
 	printf("1D-Testing started\n");
 	float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
 	int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
@@ -45,7 +51,7 @@ int main()
 	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M = roundf(M_);
 	int *lattice;				//declare lattice 
-	int i=0,ii=0;			
+	int i,ii=0;			
 	lattice = init_lat(N,M,phi);
 	for(ii=0;ii<tottime;ii++)
 	{
@@ -64,8 +70,7 @@ int main()
 //input:int N (number of sites),float phi (particle concentration)
 //output: int array lattice (lattice with particles at timestep 0)
 int * init_lat(int N,int M,float phi) 
-{
-	long int seed = 123456789;
+{	
 	static int lattice[3000];				//allocating 3000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 //	printf("%d*%f= %d",N,phi,M);
 	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
@@ -96,11 +101,11 @@ int * init_lat(int N,int M,float phi)
 //output: int random index
 int rand_index(double arraylength) 
 {
-	long int seed = 123456789;
 	double interval = 1/arraylength;	//separate the space 0-1 into N pieces with length interval
 //	printf("interval: %f\n",interval);
 	int i = 0;
 	double rndnum;			
+	long seed = time(NULL);
 	rndnum = ran3(&seed);			//pick a random number out of the spacing 0-1
 	int index = roundf(rndnum/interval);	//evaluate the index of the lattice, this index is a randomly chosen one		
 	return index;
@@ -111,11 +116,9 @@ int rand_index(double arraylength)
 //output: -1 or 1 as int
 int rnddirection() 
 {		
-	time_t t= time(0);
-	double rndnum;
-	long int seed= t%1000000000;
+	long seed = time(NULL);
 	printf("seed = %ld\n",seed);
-	rndnum = ran3(&seed);
+	double rndnum = ran3(&seed);
 	if (rndnum < 0.5)
 	{
 //		printf("-1");
@@ -132,6 +135,7 @@ int rnddirection()
 //output: int * lattice (evolution of lattice after one timestep)
 int * timestep(int * lattice,int N,int M, double alph)
 {
+	long seed = time(NULL);
 	int i = 0;
 	int ind;
 //	printf("M= %d\n",M);
@@ -232,9 +236,10 @@ char * geturand()
 */
 char * geturand()
 {
-	char ch,file_name[25];
+	int len = 12;
+	static char str[20];
+	char file_name[25];
 	FILE *fp;
-	int len = 10;
 	//char ranch[len];
 	//  printf("Enter the name of file you wish to see\n");
 	//file_name="/dev/urand";
@@ -251,9 +256,11 @@ char * geturand()
 	int i;
 	for(i=0;i<len;i++)
 	{
-		ch = fgetc(fp);
-		printf("%d",ch);
+		str[i] = fgetc(fp);
+	//	printf("%c",str[i]);
 	}
 	fclose(fp);
-	return 0;
+	return str;	
 }
+
+
