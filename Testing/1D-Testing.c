@@ -14,15 +14,21 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+//#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+//#include <unistd.h>
 //--------------Prototypes-----------------------
 int * init_lat(int N,int M,float phi);
 int rand_index(double arraylength);
 int length(int * array);
 int rnddirection(); 
 int * timestep(int * lattice,int N, int M, double alph);
+char * geturand();
 //----------------Main Program--------------------
 int main() 
 {
+	geturand();
 	printf("--------------------\n");
 	printf("1D-Testing started\n");
 	float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
@@ -204,5 +210,50 @@ int * timestep(int * lattice,int N,int M, double alph)
 	}
 	return lattice;
 }
+/*
+char * geturand()
+{
+	int randomData = open("/dev/random", O_RDONLY);		//opens a random and returns int reffering to random
+	static char myRandomData[50];
+	size_t randomDataLen = 0;
+	while (randomDataLen < sizeof myRandomData)
+	{
+	    ssize_t result = read(myRandomData, myRandomData + randomDataLen, (sizeof myRandomData) - randomDataLen);
+	    if (result < 0)
+	    {
+		// error, unable to read /dev/random 
+	    }
+	    randomDataLen += result;
+	}
+	close(randomData);
+//	printf("",myrandomdata);
+	return myRandomData;
+}
+*/
+char * geturand()
+{
+	char ch,file_name[25];
+	FILE *fp;
+	int len = 10;
+	//char ranch[len];
+	//  printf("Enter the name of file you wish to see\n");
+	//file_name="/dev/urand";
 
+	fp = fopen("/dev/urandom","r"); // read mode
 
+	if( fp == NULL )
+	{
+		perror("Error while opening the file.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	//printf("The contents of %s file are :\n", file_name);
+	int i;
+	for(i=0;i<len;i++)
+	{
+		ch = fgetc(fp);
+		printf("%d",ch);
+	}
+	fclose(fp);
+	return 0;
+}
