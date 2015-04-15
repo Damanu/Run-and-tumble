@@ -4,6 +4,9 @@
 // 1 lables Particles that move right
 // -1 lables Particles that move left
 
+
+//dev/urandom ... rand nummer gen linux
+
 //--------------Libaries-----------------------
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,7 +107,7 @@ int rnddirection()
 {		
 	time_t t= time(0);
 	double rndnum;
-	long int seed=t;
+	long int seed= t%1000000000;
 	printf("seed = %ld\n",seed);
 	rndnum = ran3(&seed);
 	if (rndnum < 0.5)
