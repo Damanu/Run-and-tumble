@@ -283,6 +283,7 @@ int tumble(int dir,double alph)
 	int dir_ = dir;
 	long seed = time(NULL);
 	double rndnum = ran3(&seed);
+/*
 	//this is more complicated than needed here, but with two or three dimensions it is easier like that
 	if(rndnum <= alph) 	//if random number is smaller than alph
 	{
@@ -295,5 +296,16 @@ int tumble(int dir,double alph)
 	else
 	{
 		return dir; //return old direction if random number is above probability
+	}
+*/
+//not shure if the first way is right, so here an other one where tumbling can also not change the direction
+
+	if(rndnum <= alph)
+	{
+		return rnddirection();
+	}
+	else
+	{
+		return dir;
 	}
 }
