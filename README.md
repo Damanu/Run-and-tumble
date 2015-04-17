@@ -1,4 +1,7 @@
 # Run-and-tumble
+
+**********INCOMPLETE and maby parly wrong****************
+
 SciComp Practical and Bachelorwork: Run-and-tumble in a crowded environment: Persistent exclusion process for swimmers
 
 The goal is to simmulate Particles in one and two Dimensions with several rules. At first they move on a cluster. Each 
