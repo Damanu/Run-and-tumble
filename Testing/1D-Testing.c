@@ -27,6 +27,7 @@ int length(int * array);
 int rnddirection(); 
 int * timestep(int * lattice,int N, int M, double alph);
 char * geturand();
+int tumble(int dir,double alph);
 //----------------Main Program--------------------
 int main() 
 {
@@ -57,7 +58,15 @@ int main()
 	{
 		for(i=0;i<N;i++) 
 		{
-			printf("%d",*(lattice+i));
+			//printf("%d",*(lattice+i));
+			if(lattice[i]==0)
+			{
+				printf(" ");
+			}
+			else
+			{
+				printf("|");
+			}
 		}
 		printf("\n");
 		lattice=timestep(lattice,N,M,alph);
@@ -117,7 +126,7 @@ int rand_index(double arraylength)
 int rnddirection() 
 {		
 	long seed = time(NULL);
-	printf("seed = %ld\n",seed);
+	//printf("seed = %ld\n",seed);
 	double rndnum = ran3(&seed);
 	if (rndnum < 0.5)
 	{
@@ -139,6 +148,8 @@ int * timestep(int * lattice,int N,int M, double alph)
 	int i = 0;
 	int ind;
 //	printf("M= %d\n",M);
+
+//--this algorithm has to be optimized, there must be a shorter way--
 	for(i = 0; i < M; i++)
 	{
 		ind=rand_index(N);
@@ -149,6 +160,7 @@ int * timestep(int * lattice,int N,int M, double alph)
 		}
 		else
 		{
+			lattice[ind] = tumble(lattice[ind],alph);
 			if(ind == N-1) //if upper periodic boundary 
 			{
 				if(lattice[ind] > 0) 		//find out the direction
@@ -263,4 +275,25 @@ char * geturand()
 	return str;	
 }
 
-
+//--tumble()--
+//input: dir (direction of the particle), alph (probability to tumble)
+//output: direction of the particle (with probability alph changed)
+int tumble(int dir,double alph)
+{	
+	int dir_ = dir;
+	long seed = time(NULL);
+	double rndnum = ran3(&seed);
+	//this is more complicated than needed here, but with two or three dimensions it is easier like that
+	if(rndnum <= alph) 	//if random number is smaller than alph
+	{
+		while(dir == dir_)	// as long as the direction didnt change
+		{
+			dir_ = rnddirection(); 		//randomly choose new direction
+		}
+		return dir_;
+	}
+	else
+	{
+		return dir; //return old direction if random number is above probability
+	}
+}
