@@ -26,9 +26,10 @@ int rand_index(double arraylength);
 int length(int * array);
 int rnddirection(); 
 int * timestep(int * lattice,int N, int M, double alph);
-char * geturand();
+//char * geturand();
 int tumble(int dir,double alph);
-//----------------Main Program--------------------
+int cluster_counter(int * lattice,int N);
+//--------------Main Program---------------------
 int main() 
 {
 	srand(time(0));
@@ -64,13 +65,17 @@ int main()
 				printf(" ");
 			}
 			else
-			{
+			{		
 				printf("|");
 			}
 		}
 		printf("\n");
 		lattice=timestep(lattice,N,M,alph);
 	}
+	int cl_count = cluster_counter(lattice,N);	
+	double Lc = (double)M/(double)cl_count;		//Lc is the average cluster size .... mistake: does not consider particles that are not in a cluster (all particles are in cluster ... wrong, but gets better for bigger numbers of particles)
+	printf("Cluster count: %d \n",cl_count);
+	printf("Lc: %lf \n",Lc);
 }
 //-----------------Functions-----------------------
 
@@ -246,6 +251,7 @@ char * geturand()
 	return myRandomData;
 }
 */
+/*
 char * geturand()
 {
 	int len = 12;
@@ -274,6 +280,7 @@ char * geturand()
 	fclose(fp);
 	return str;	
 }
+*/
 
 //--tumble()--
 //input: dir (direction of the particle), alph (probability to tumble)
@@ -298,7 +305,7 @@ int tumble(int dir,double alph)
 		return dir; //return old direction if random number is above probability
 	}
 */
-//not shure if the first way is right, so here an other one where tumbling can also not change the direction
+//not shure if the first way is right, so here an other one where tumbling can also not change the direction --> prob 1/2 to change it
 
 	if(rndnum <= alph)
 	{
@@ -309,3 +316,63 @@ int tumble(int dir,double alph)
 		return dir;
 	}
 }
+
+
+//--cluster_counter--
+//input: the lattice
+//output: number of clusters on lattice (a clusters (in 1D) consists particles that for shure won't change their position at the next time step if they don't tumble, the smallest cluster are two particles with direction towards each other)
+int cluster_counter(int * lattice,int N)
+{	
+	int i, ii, iii, count=0;
+//!!!!!!!!!!!!!-one big mistake I make here ist, that periodic boudary conditions are not considered-!!!!!!!!!!!!!!!!!!!!!!!!!
+//this alters the count only by a small number so I dont care right now... I will change this though
+	for(i=0;i<N;i++)
+	{
+		if(lattice[i] != 0)	//if there is a particle
+		{
+			ii = 1;
+			while(lattice[i+ii] != 0) 	//look if there are particles to the right of it
+			{
+				ii++;
+			}
+			if(lattice[i+ii-1] == -lattice[i]) //if the last particle right of that particle has the opposite direction
+			{
+				i=i+ii;
+				count++;
+//				printf(" %d \n", count);	
+				//!!!!!!it is possible to include measurement of cluster size here!!!!!!!
+			}
+			else	//if it has the same direction (wich is possible if the particle to its right tumbled and that particle didn't move at that timestep) search the next particle (with opposite direction to the first) left to this one.
+			{
+				iii=1;
+				while((lattice[i+ii-iii] != -lattice[i]) && ((ii-iii) > 0)) //search the next left particle that has opposite direction to the first one
+				{
+					iii++;
+				}
+				if(ii-iii != 0) //if it is found add one to the counter
+				{
+					i=i+ii;
+					count++;
+//					printf(" %d \n", count);	
+				}	
+				else	//otherwise this is no cluster
+				{
+					i=i+ii;
+				}			
+			}
+		}
+	}
+//	printf("%d \n",count);
+	return count;
+}
+
+
+
+
+
+
+
+
+
+
+
