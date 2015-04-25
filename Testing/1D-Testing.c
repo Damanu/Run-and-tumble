@@ -54,7 +54,7 @@ int main()
 	M = roundf(M_);
 	int *lattice;				//declare lattice 
 	int i,ii=0;			
-	lattice = init_lat(N,M,phi);
+	lattice = init_lat(N,M,phi);		//initalize lattice
 	for(ii=0;ii<tottime;ii++)
 	{
 		for(i=0;i<N;i++) 
@@ -366,7 +366,20 @@ int cluster_counter(int * lattice,int N)
 	return count;
 }
 
-
+//--mean_dist--
+//input: the lattice, NumOfTSteps (number of times the timestep function is executed, NumOfSweeps (number of times the whole lattice runs for NumOFTSteps times.  
+//output: the mean distance for NumOfSweeps
+//Important: this function only makes sense if there is only one Particle!
+int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double alph)
+{	
+	int * lattice;
+	lattice = init_lat(N,M,phi);
+	int i;
+	for(i=0; i<NumOfTSteps; i++)
+	{
+		lattice = timestep(lattice,M,N,alph);
+	}
+}
 
 
 
