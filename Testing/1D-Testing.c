@@ -29,9 +29,12 @@ int * timestep(int * lattice,int N, int M, double alph);
 //char * geturand();
 int tumble(int dir,double alph);
 int cluster_counter(int * lattice,int N);
+int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double alph);
+int find(int * lattice,int N);
 //--------------Main Program---------------------
 int main() 
 {
+//-----------------Parameter input---------------------------
 	srand(time(0));
 	//double r = rand()/(double)RAND_MAX;
 	long t=time(0);
@@ -42,6 +45,7 @@ int main()
 	float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
 	int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
 	char word;
+/*
 	printf("Number of sites (N): ");
 	scanf("\n%d", &N);			//get number of sites
 	printf("Particle concentration (phi): ");
@@ -50,10 +54,27 @@ int main()
 	scanf("\n%f", &alph);			//get tumbling probability
 	printf("Total Time for evolution (T): ");
 	scanf("\n%d",&tottime);
+
+//----------------------------------------------------------------
+*/	
+	N = 10000;
+	alph = 0.001;
+	phi = 1.0/10000.0;	
+	int T = 10;
+	tottime=T;
+
 	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M = roundf(M_);
-	int *lattice;				//declare lattice 
-	int i,ii=0;			
+//	printf("M: %d \n",M);
+	int * lattice;				//declare lattice 
+	int i,ii=0;
+	int j;			
+	for(j=0; j<60; j++)
+	{
+//		printf("cicle: %d \n",j);
+		mean_dist(T,10*(j+1) , N, M, phi, alph); 
+	}
+/*
 	lattice = init_lat(N,M,phi);		//initalize lattice
 	for(ii=0;ii<tottime;ii++)
 	{
@@ -76,6 +97,8 @@ int main()
 	double Lc = (double)M/(double)cl_count;		//Lc is the average cluster size .... mistake: does not consider particles that are not in a cluster (all particles are in cluster ... wrong, but gets better for bigger numbers of particles)
 	printf("Cluster count: %d \n",cl_count);
 	printf("Lc: %lf \n",Lc);
+
+*/
 }
 //-----------------Functions-----------------------
 
@@ -85,27 +108,38 @@ int main()
 //output: int array lattice (lattice with particles at timestep 0)
 int * init_lat(int N,int M,float phi) 
 {	
-	static int lattice[3000];				//allocating 3000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
+	static int lattice[10000];				//allocating 3000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 //	printf("%d*%f= %d",N,phi,M);
 	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
 	double rndnum;
 	int len = N;
 	int ind;
-	printf("length of array:  %d\n",len);			
-	for(i=0;i<M;i++)  			//loop to find random indizes
+	for(i=0; i<N; i++)
+	{
+		lattice[i]=0;
+	}
+//	printf("length of array:  %d\n",len);			
+	for( i = 0 ; i < M ; i++ )  			//loop to find random indizes
 	{
 		ind=rand_index(len);
-//		printf("chosen indizes: %d\n",ind);
+	//	printf("chosen indizes: %d\n",ind);
+//		printf("lattice[ind]= %d \n",lattice[ind]);
 		if(lattice[ind]==0) 
 		{
 			lattice[ind]=rnddirection();
+			
 		}
 		else
 		{
 			i--;
 		}
+	//	printf("break!\n");
+//		printf("in loop: %d \n",i);
+	//	break;
+	//	if(i==0) {printf("break!");break;}
 	}
+//	printf("out loop\n");
 	return lattice;
 }
 
@@ -373,15 +407,56 @@ int cluster_counter(int * lattice,int N)
 int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double alph)
 {	
 	int * lattice;
+	int i,ii;
+	int ind;
+	double mean_distance=0;
+	
 	lattice = init_lat(N,M,phi);
-	int i;
-	for(i=0; i<NumOfTSteps; i++)
+//	printf("after init\n");
+	//Declare nested function 
+	//--find--
+	//input: lattice
+	//output: int ind (position of the particle)
+	for(ii=0; ii<NumOfSweeps; ii++)		//run the whole counter NumOfSweeps times
 	{
-		lattice = timestep(lattice,M,N,alph);
+		
+		ind = find(lattice,N); 
+		for(i=0; i<NumOfTSteps; i++)	//let the particle evolve in time for one MCSweep 
+		{
+			lattice = timestep(lattice,N,M,alph);
+		}
+		mean_distance += (double)abs(ind - find(lattice,N));
 	}
+	mean_distance = mean_distance/(double)NumOfSweeps;	//calculate the mean distance over all runs
+	printf("mean distance: %lf \n",mean_distance);
+	return mean_distance;
 }
 
 
+int find(int * lattice,int N)
+{
+	int i;
+//	printf("find\n");
+	int store=-1;
+	for(i=0; i<N; i++)		
+	{
+		if(lattice[i]!=0) 	
+		{
+			if(store==-1)
+			{
+//				printf("Find index: %d \n",i);
+				store = i;
+			}
+			else
+			{
+				printf("meand_dist Error: there are two particles on the lattice, this function is only written for one!\n");
+				exit(0);
+			}
+		}
+		
+	}
+	return store;
+}
 
 
 
