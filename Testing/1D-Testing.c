@@ -327,9 +327,11 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 				{
 					if(r_lattice[0] == 0) 	//find out if "the way if free"
 					{
+						lattice[ind].wallcount+=1;
 						lattice[ind].ind=0; //move
 						r_lattice[0]=lattice[ind].dir; //copy to helper lattice
 						r_lattice[N-1]=0;	//clear old site
+						
 					}
 				}
 				else
@@ -360,6 +362,7 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 						if(r_lattice[N-1] == 0) 		//if the way if free
 						{
 							lattice[ind].ind=N-1;		//move
+							lattice[ind].wallcount-=1;
 							r_lattice[N-1]=lattice[ind].dir;	//copy to helper lattice
 							r_lattice[0]=0;		//clear old site
 						}	
