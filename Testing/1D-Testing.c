@@ -115,7 +115,7 @@ int * init_lat(int N,int M,float phi)
 //output: int random index
 int rand_index(double arraylength) 
 {
-	double interval = 1/arraylength;	//separate the space 0-1 into N pieces with length interval
+	double interval = 1/(arraylength-1);	//separate the space 0-1 into N pieces with length interval
 //	printf("interval: %f\n",interval);
 	int i = 0;
 	double rndnum;			
