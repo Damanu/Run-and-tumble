@@ -113,7 +113,7 @@ double ran2(long *idum)
 #undef EPS 
 #undef RNMX 
  
-/*
+
 double gaussrand(long *idum)
 {
         //float ran1(long *idum);
@@ -136,7 +136,7 @@ double gaussrand(long *idum)
                 return gset;
         }
 }
- (C) Copr. 1986-92 Numerical Recipes Software "0j. */
+// (C) Copr. 1986-92 Numerical Recipes Software "0j. 
 
 
 
