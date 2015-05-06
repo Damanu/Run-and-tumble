@@ -56,6 +56,7 @@ char word;
 int i, ii;
 struct particle * lattice;
 int * r_lattice;
+double m_d;
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
 scanf("\n%d", &N);			//get number of sites
@@ -68,19 +69,25 @@ scanf("\n%d",&tottime);
 */
 //----------------------------------------------------------------
 
+	FILE *f;		//create file pointer		
+	f = fopen("data_meandist_T.txt","w"); //open file stream
+	fprintf(f,"meandist	T\n");
 
-
-	N = 10000;
-	alph =0.2;
+	N = 2000;
+	alph =0.3;
 	phi = 1;	
 	int T = 1000;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
-	lattice = init_lat_2(N,M,phi);
-	double m_d=mean_dist_2(lattice,M,N,alph,T); 
-	printf("mean dist: %lf \n",m_d);
-
+	for(i=0;i<1000;i++)
+	{
+		lattice = init_lat_2(N,M,phi);
+		m_d=mean_dist_2(lattice,M,N,alph,i); 
+//		printf("mean dist: %lf \n",m_d);
+		fprintf(f,"%lf	%d\n",m_d,i);
+	}
+	fclose(f);
 /*
 	printf("M: %d\n",M);
 	lattice = init_lat_2(N,M,phi);		//initalize lattice
@@ -117,7 +124,6 @@ scanf("\n%d",&tottime);
 
 }
 //-----------------Functions-----------------------
-
 //--init_lat--
 //initialises the Lattice with cells on it
 //input:int N (number of sites),float phi (particle concentration)
