@@ -49,10 +49,9 @@ int main()
 	printf("1D-Testing started\n");
 	float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
 	int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
-	char word;
 	int i, ii;
 //----------------------------Manual input-------------------------------
-	printf("Number of sites (N): ");
+/*	printf("Number of sites (N): ");
 	scanf("\n%d", &N);			//get number of sites
 	printf("Particle concentration (phi): ");
 	scanf("\n%f", &phi);			//get concentration
@@ -60,21 +59,21 @@ int main()
 	scanf("\n%f", &alph);			//get tumbling probability
 	printf("Total Time for evolution (T): ");
 	scanf("\n%d",&tottime);
-
+*/
 //----------------------------------------------------------------
 
 
-/*	
-	N = 10000;
+	
+	N = 100;
 	alph = 0.001;
-	phi = 1.0/10000.0;	
+	phi = 1.0/100.0;	
 	int T = 10;
 	tottime=T;
 
 	float M_ =(float)(N)*phi; 				//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M = roundf(M_);
 //	printf("M: %d \n",M);
-	int * lattice;				//declare lattice 
+/*	int * lattice;				//declare lattice 
 	int i,ii=0;
 	int j;			
 	for(j=0; j<60; j++)
@@ -154,13 +153,13 @@ struct particle * init_lat_2(int N,int M,float phi)
 {	
 	static struct particle lattice[10000];				//allocating 10000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 	static int r_lattice [10000];		//helper lattice (real lattice)
-	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
+	double interval=1.0/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
 	double rndnum;
 	int ind;
 	for(i=0; i<N; i++)
 	{
-		lattice[i].ind=0;
+		r_lattice[i]=0;
 	}
 	for( i = 0 ; i < M ; i++ )  			//loop to find random indizes
 	{
@@ -184,6 +183,11 @@ struct particle * init_lat_2(int N,int M,float phi)
 //output: int random index
 int rand_index(double arraylength) 
 {
+	if(arraylength == 0)
+	{
+		printf("Error: not enough particles!!");
+		exit(0);
+	}
 	double interval = 1/(arraylength-1);	//separate the space 0-1 into N pieces with length interval
 //	printf("interval: %f\n",interval);
 	int i = 0;
