@@ -76,14 +76,14 @@ scanf("\n%d",&tottime);
 	N = 2000;
 	alph =0.3;
 	phi = 1;	
-	int T = 1000;
+	int T = 100;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
 	for(i=0;i<1000;i++)
 	{
-		lattice = init_lat_2(N,M,phi);
-		m_d=mean_dist_2(lattice,M,N,alph,i); 
+		lattice = init_lat_2(N,i,phi);
+		m_d=mean_dist_2(lattice,i,N,alph,T); 
 //		printf("mean dist: %lf \n",m_d);
 		fprintf(f,"%lf	%d\n",m_d,i);
 	}
