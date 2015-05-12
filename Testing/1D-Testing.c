@@ -13,7 +13,9 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 #include "./../Lib/random.h"
+#include "./../Lib/hk.h"
 //#include <unistd.h>
 //--------------Prototypes-----------------------
 int * init_lat(int N,int M,float phi);
@@ -31,6 +33,7 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 int * transform(struct particle * lattice,int M, int N);
 double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T);
 struct particle * timestep_alone(struct particle * lattice, int N, int M, double alph);
+int ** transform_2d(struct particle * lattice, int M,int m, int n);
 //----------------Structures----------------------
 struct particle
 {
@@ -57,6 +60,7 @@ int i, ii;
 struct particle * lattice;
 int * r_lattice;
 double m_d;
+int ** matrix;
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
 scanf("\n%d", &N);			//get number of sites
@@ -69,25 +73,51 @@ scanf("\n%d",&tottime);
 */
 //----------------------------------------------------------------
 
+//----------mode----------
+	int mode=2;
+//-----------------------
+
 	FILE *f;		//create file pointer		
 	f = fopen("data_meandist_T.txt","w"); //open file stream
 	fprintf(f,"meandist	T\n");
 
-	N = 2000;
-	alph =0.3;
-	phi = 1;	
+	N = 20;
+	int m=1;
+	alph =0.5;
+	phi = 0.5;	
 	int T = 100;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
-	for(i=0;i<1000;i++)
+	switch (mode)
 	{
-		lattice = init_lat_2(N,i,phi);
-		m_d=mean_dist_2(lattice,i,N,alph,T); 
-//		printf("mean dist: %lf \n",m_d);
-		fprintf(f,"%lf	%d\n",m_d,i);
+	case 0:
+		printf("no Mode");
+		break;
+	case 1:
+		for(i=0;i<1000;i++)
+		{
+			lattice = init_lat_2(N,i,phi);
+			m_d=mean_dist_2(lattice,i,N,alph,T); 
+	//		printf("mean dist: %lf \n",m_d);
+			fprintf(f,"%lf	%d\n",m_d,i);
+		}
+		fclose(f);
+		break;
+	case 2:
+		
+		lattice = init_lat_2(N,M,phi);
+		for(i=0;i<T;i++)
+		{
+			lattice=timestep_2(lattice,N,M,alph);
+		}
+		matrix=transform_2d(lattice,M,m,N);
+		int clusters = hoshen_kopelman(matrix,m,N);
+		double l_m=(double)M/(double)clusters;	//mean cluster size (l_m)
+		printf("mean cluster size: %lf\n",l_m);
+		break;
 	}
-	fclose(f);
+	
 /*
 	printf("M: %d\n",M);
 	lattice = init_lat_2(N,M,phi);		//initalize lattice
@@ -170,6 +200,33 @@ int * transform(struct particle * lattice,int M, int N)
 		r_lattice[lattice[i].ind]=lattice[i].dir;
 	}
 	return r_lattice;
+}
+//--transform_2d--
+//input: struct partilce * lattice, number of particles M, number of columns n, number of raws m)
+//output: returns a ** consisting of integers -1, 1, 0
+int ** transform_2d(struct particle * lattice, int M,int m, int n)
+{
+	int i,j;
+	int ** matrix;
+	matrix = (int **)calloc(m,sizeof(int *));
+	for (i=0; i<m; i++)		//allocate memory 
+	{
+      		matrix[i] = (int *)calloc(n, sizeof(int));
+		for(j=0;j<n;j++)
+		{
+			matrix[i][j]=0; //set all matrix elements 0	
+		}
+	}	
+	for(i=0;i<M;i++)
+	{
+		int raw, column;
+		raw=lattice[i].ind/n;
+		column=lattice[i].ind-raw*n;
+		printf("raw: %d, column: %d \n",raw, column);
+		matrix[raw][column]=lattice[i].dir;
+	}
+	print_matrix(matrix,m,n);
+	return matrix;
 }
 //--init_lat_2--
 //initialises the Lattice with cells on it
