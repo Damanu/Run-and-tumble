@@ -1010,37 +1010,97 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 			lattice[ind].dir = tumble_2D(lattice[ind].dir,alph);	//tumbling event
 			switch (lattice[ind].dir)
 			{
-				case 1:		//moving right
-					
-					break;
-				case -1:	//moving left
-					
-					break;
-				case 2:		//moving down
-					if(ind2D[0]=N-1)	//if particle is on lower boundary
+				case 1:		//moving right	
+					if(ind2D[1]==N-1)	//if particle is on right boundary
 					{
-						if(r_lattice[N-1][ind2D[1]]==0)	//if the way is free
+						if(r_lattice[ind2D[0]][N-1]==0)	//if the way is free
 						{
-							lattice[ind].wallcount_2+=1;
-							lattice[ind].ind=/*(ind2D[0]+1)*N*/0+ind2D[1]; //move (lattice.ind=raw*N+column)
-							r_lattice[0][ind2D[1]=lattice[ind].dir; //copy to helper lattice
-							r_lattice[N-1][ind2D[1]]=0;	//clear old site
+							lattice[ind].wallcount_1+=1;
+							lattice[ind].ind=ind2D[1]+N-1; //move
+							r_lattice[ind2D[0]][N-1]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][0]=0;	//clear old site
 							continue;
 						}
 					}
-					else
+					else // if not
 					{
 						if(r_lattice[ind2D[0]+1][ind2D[1]]==0)	//if the way is free
 						{	
 							lattice[ind].ind=(ind2D[0]+1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
-							r_lattice[ind2D[0]+1,ind2D[1]]=lattice[ind].dir; //copy to helper lattice
-							r_lattice[ind2D[0],][ind2D[1]]=0;	//clear old site
+							r_lattice[ind2D[0]+1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
+							continue;
+						}
+					}
+					break;
+				case -1:	//moving left
+					if(ind2D[1]==0)	//if particle is on left boundary
+					{
+						if(r_lattice[ind2D[0]][N-1]==0)	//if the way is free
+						{
+							lattice[ind].wallcount_1-=1;
+							lattice[ind].ind=N+ind2D[1]-N+1; //move
+							r_lattice[ind2D[0]][N-1]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][0]=0;	//clear old site
+							continue;
+						}
+					}
+					else // if not
+					{
+						if(r_lattice[ind2D[0]+1][ind2D[1]]==0)	//if the way is free
+						{	
+							lattice[ind].ind=(ind2D[0]+1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
+							r_lattice[ind2D[0]+1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
+							continue;
+						}
+					}
+					break;
+				case 2:		//moving down
+					if(ind2D[0]==m-1)	//if particle is on upper boundary
+					{
+						if(r_lattice[0][ind2D[1]]==0)	//if the way is free
+						{
+							lattice[ind].wallcount_2+=1;
+							lattice[ind].ind=/*(ind2D[0]+1)*N*/0*N+ind2D[1]; //move (lattice.ind=raw*N+column)
+							r_lattice[0][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[m-1][ind2D[1]]=0;	//clear old site
+							continue;
+						}
+					}
+					else // if not
+					{
+						if(r_lattice[ind2D[0]+1][ind2D[1]]==0)	//if the way is free
+						{	
+							lattice[ind].ind=(ind2D[0]+1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
+							r_lattice[ind2D[0]+1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
 							continue;
 						}
 					}
 					break;
 				case -2:	//moving up
-					
+					if(ind2D[0]==0)	//if particle is on lower boundary
+					{
+						if(r_lattice[N-1][ind2D[1]]==0)	//if the way is free
+						{
+							lattice[ind].wallcount_2-=1;
+							lattice[ind].ind=/*(ind2D[0]+1)*N*/(N-1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
+							r_lattice[N-1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[0][ind2D[1]]=0;	//clear old site
+							continue;
+						}
+					}
+					else // if not
+					{
+						if(r_lattice[ind2D[0]-1][ind2D[1]]==0)	//if the way is free
+						{	
+							lattice[ind].ind=(ind2D[0]-1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
+							r_lattice[ind2D[0]-1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
+							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
+							continue;
+						}
+					}
 					break;
 			}
 			if((ind2D[0] == 0)&&()) //if particle is in lattice corner up-left 
