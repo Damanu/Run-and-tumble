@@ -42,6 +42,9 @@ int dir;		//direction
 int wallcount;		//counter how often it passed the end of lattice (right end is + left end is -)
 int type;		//(optional) a type of particle (maybe not needed)
 };
+
+//-------------Global Variables--------------
+static long int LATTICESIZE=10000000;
 //--------------Main Program---------------------
 int main() 
 {
@@ -78,14 +81,12 @@ scanf("\n%d",&tottime);
 //-----------------------
 
 	FILE *f;		//create file pointer		
-	f = fopen("data_meandist_T.txt","w"); //open file stream
-	fprintf(f,"meandist	T\n");
 
-	N = 20;
+	N = 60000;
 	int m=1;
-	alph =0.5;
+	alph =0.0001;
 	phi = 0.5;	
-	int T = 100;
+	int T = 1000;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
@@ -94,7 +95,9 @@ scanf("\n%d",&tottime);
 	case 0:
 		printf("no Mode");
 		break;
-	case 1:
+	case 1:		//mean square distance calculation
+		f = fopen("data_meandist_T.txt","w"); //open file stream
+		fprintf(f,"meandist	T\n");
 		for(i=0;i<1000;i++)
 		{
 			lattice = init_lat_2(N,i,phi);
@@ -104,20 +107,127 @@ scanf("\n%d",&tottime);
 		}
 		fclose(f);
 		break;
-	case 2:
+	case 2:		//cluster-counting
 		
+		f = fopen("data_Fc_l.txt","w"); //open file stream
+		fprintf(f,"l	Fc\n");
+		double *Fc;
+		Fc=(double *)calloc(M,sizeof(double));
+		int *numofclusters;
+		numofclusters=(int *)calloc(M,sizeof(int));
+		int max_l=0;
+		int iter=10000;
 		lattice = init_lat_2(N,M,phi);
-		for(i=0;i<T;i++)
+		for(i=0;i<20000000;i++)		//equilibration
 		{
 			lattice=timestep_2(lattice,N,M,alph);
+			printf("i: %d\n",i);
 		}
-		matrix=transform_2d(lattice,M,m,N);
-		int clusters = hoshen_kopelman(matrix,m,N);
-		double l_m=(double)M/(double)clusters;	//mean cluster size (l_m)
-		printf("mean cluster size: %lf\n",l_m);
+		for(ii=0;ii<iter;ii++)
+		{
+			printf("ii: %d\n",ii);
+			for(i=0;i<100;i++)
+			{
+				lattice=timestep_2(lattice,N,M,alph);
+			}
+			matrix=transform_2d(lattice,M,m,N);
+			int clusters = hoshen_kopelman(matrix,m,N);
+			printf("clusters: %d\n",clusters);
+			int ccount=0;
+			int size=1;
+			for(i=0;i<M;i++)
+			{
+				numofclusters[i]=0;
+			}
+			for(i=0;i<=N;i++)	//count the number of clusters of a specific size and write them into an array --> array[clustersize]=number of clusters with size clustersize
+			{
+				if(i==N)   //if the last site has been exeded
+				{
+					if(ccount==0)	//and there was no particle before
+					{
+						continue;	//do nothing
+					}
+					else 	//if there was one add one to the counter of its size
+					{
+						numofclusters[ccount]+=1;
+						if(max_l<ccount)
+						{
+							max_l=ccount;
+						}	 
+						ccount=0;	//reset the counter
+					}
+					break;
+				}
+				if(matrix[m-1][i]==0) 	//if there is no particle
+				{
+					if(ccount==0)	//and there was no particle before
+					{
+						continue;	//do nothing
+					}
+					else 	//if there was one add one to the counter of its size
+					{
+						numofclusters[ccount]+=1;	 
+						if(max_l<ccount)
+						{
+							max_l=ccount;
+						}	 
+						ccount=0;	//reset the counter
+					}
+				}
+				else
+				{
+					ccount+=1;
+				}
+			}
+			printf("max_l: %d\n",max_l);
+			for(i=2;i<=max_l;i++)
+			{	
+				Fc[i]+=(double)numofclusters[i];
+	//			Fc[i]=(double)numofclusters[i]/((double)M);
+	//			fprintf(f,"%d	%lf\n",i,Fc[i]);
+			}
+		}
+		for(i=2;i<=max_l;i++)
+		{
+			Fc[i]=Fc[i]/((double)M*(double)iter);
+			fprintf(f,"%d	%lf\n",i,Fc[i]);
+		}
+		fclose(f);
+	//	double l_m=(double)M/(double)clusters;	//mean cluster size (l_m)
+	//	printf("mean cluster size: %lf\n",l_m);
 		break;
-	}
 	
+	case 3: 	//calculating equilibration time (output average cluster size Lc over #timesteps T)
+		
+		f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+		fprintf(f,"T	Lc\n");
+		lattice = init_lat_2(N,M,phi);		//initialize lattice
+		T=1000000;
+		int clusters;
+		double Lc;
+		double ti;
+		int stepsize=200;
+		for(i=stepsize;i<=T;i+=stepsize)
+		{
+			printf("i: %d\n",i);
+			for(ii=0;ii<stepsize;ii++)
+			{
+				lattice=timestep_2(lattice,N,M,alph);		//make one timestep
+			}
+			matrix=transform_2d(lattice,M,m,N);		//create hk matrix
+			clusters = hoshen_kopelman(matrix,m,N);		//calculate number of clusters
+			for(ii=0;i<m;i++)
+			{
+				free(matrix[i]);
+			}
+			free(matrix);					//give space of matrix free (or I get a space problem)
+			Lc=(double)M/(double)clusters;			//calculate mean cluster size
+//			ti=(double)i/(double)T;
+			fprintf(f,"%d	%lf\n",i,Lc);			//write data to file
+		}
+		fclose(f);	//close data stream
+		break;
+	}	
 /*
 	printf("M: %d\n",M);
 	lattice = init_lat_2(N,M,phi);		//initalize lattice
@@ -160,7 +270,8 @@ scanf("\n%d",&tottime);
 //output: int array lattice (lattice with particles at timestep 0)
 int * init_lat(int N,int M,float phi) 
 {	
-	static int lattice[10000];		//allocating 10000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
+	int * lattice;
+	lattice=(int *)calloc(LATTICESIZE,sizeof(int));		//allocating 10000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
 	double rndnum;
@@ -190,7 +301,8 @@ int * init_lat(int N,int M,float phi)
 int * transform(struct particle * lattice,int M, int N)
 {
 	int i;
-	static int r_lattice[10000];	//allocate memory for r_lattice
+	static int  r_lattice[10000000];	//allocate memory for r_lattice
+//	r_lattice=(int *)calloc(N,sizeof(int));
 	for(i=0;i<N;i++)	//set all sites 0
 	{
 		r_lattice[i]=0;
@@ -204,6 +316,7 @@ int * transform(struct particle * lattice,int M, int N)
 //--transform_2d--
 //input: struct partilce * lattice, number of particles M, number of columns n, number of raws m)
 //output: returns a ** consisting of integers -1, 1, 0
+//important: after using this function the saving space for matrix AND all elements matrix[i] have to be freed by free(matrix) and free matrix[i] for all i
 int ** transform_2d(struct particle * lattice, int M,int m, int n)
 {
 	int i,j;
@@ -222,10 +335,10 @@ int ** transform_2d(struct particle * lattice, int M,int m, int n)
 		int raw, column;
 		raw=lattice[i].ind/n;
 		column=lattice[i].ind-raw*n;
-		printf("raw: %d, column: %d \n",raw, column);
+//		printf("raw: %d, column: %d \n",raw, column);
 		matrix[raw][column]=lattice[i].dir;
 	}
-	print_matrix(matrix,m,n);
+//	print_matrix(matrix,m,n);
 	return matrix;
 }
 //--init_lat_2--
@@ -234,8 +347,10 @@ int ** transform_2d(struct particle * lattice, int M,int m, int n)
 //output: struct particle * lattice (lattice with particles at timestep 0)
 struct particle * init_lat_2(int N,int M,float phi) 
 {	
-	static struct particle lattice[10000];	//allocating 10000*sizeof(particle)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
-	static int r_lattice [10000];		//helper lattice (real lattice)
+	struct particle * lattice;	//allocating 10000*sizeof(particle)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
+	lattice = (struct particle *)calloc(M,sizeof(struct particle));
+	int * r_lattice; 
+	r_lattice=(int *)calloc(N,sizeof(int));		//helper lattice (real lattice)
 	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
 	double rndnum;
@@ -260,6 +375,7 @@ struct particle * init_lat_2(int N,int M,float phi)
 			i--;
 		}
 	}
+	free(r_lattice);
 	return lattice;
 }
 //--rand_index--
@@ -465,6 +581,7 @@ struct particle * timestep_alone(struct particle * lattice, int N, int M, double
 //output: struct particle * lattice (evolution of lattice after one timestep)
 struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 {
+//	printf("timestep start\n");
 	long seed = time(NULL);
 	int i = 0;
 	int ind;
@@ -478,7 +595,7 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 //		printf("\n ind: %d\n\n",ind);
 		if(r_lattice[lattice[ind].ind] != 0) //if there is a particle 
 		{
-			lattice[ind].dir = tumble(lattice[ind].dir,alph);	//tumblin event
+			lattice[ind].dir = tumble(lattice[ind].dir,alph);	//tumbling event
 			if(lattice[ind].ind == N-1) //if upper periodic boundary 
 			{
 				if(lattice[ind].dir > 0) 		//find out the direction
@@ -746,7 +863,8 @@ double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T)
 {
 	int i;
 	double dist=0;
-	static int index[10000];
+	int * index;
+	index=(int *)calloc(N,sizeof(int));
 	for(i=0;i<M;i++)
 	{
 		index[i]=lattice[i].ind;
@@ -760,6 +878,7 @@ double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T)
 		dist += abs(abs(N*lattice[i].wallcount)-abs(lattice[i].ind-index[i]));
 	}
 	double m_d = dist/(double)M;
+	free(index);
 	return m_d;
 }
 
@@ -788,4 +907,6 @@ int find(int * lattice,int N)
 	}
 	return store;
 }
+
+
 
