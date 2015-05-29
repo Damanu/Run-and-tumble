@@ -197,6 +197,8 @@ scanf("\n%d",&tottime);
 	//	printf("mean cluster size: %lf\n",l_m);
 		break;
 	}
+	case 3:		//calculating equilibration time
+		break;
 	
 /*
 	printf("M: %d\n",M);
@@ -877,5 +879,5 @@ int find(int * lattice,int N)
 	return store;
 }
 
-
+//-------------------2D Extensions--------------------------------
 
