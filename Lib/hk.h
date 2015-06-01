@@ -114,14 +114,14 @@ int hoshen_kopelman(int **matrix, int m, int n) {
   uf_initialize(m * n / 2);
   int i,j;
   /* scan the matrix */
- /*
+
   for (i=0; i<m; i++)
     for (j=0; j<n; j++)
       if (matrix[i][j]) {                        // if occupied ...
 
-	int up = (i==0 ? 0 : matrix[i-1][j]);    //  look up  
-	int left = (j==0 ? 0 : matrix[i][j-1]);  //  look left
-	
+	int up = (i==0 ? matrix[m-1][j] : matrix[i-1][j]);    //  look up  
+	int left = (j==0 ? matrix[i][n-1]: matrix[i][j-1]);  //  look left
+        printf("%d,%d ",i,j);	
 	switch (!!up + !!left) {
 	  
 	case 0:
@@ -138,7 +138,8 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 	}
 	
       }
-*/
+      printf("\n");
+/*
   for (i=m-1; i>=0; i--)
     for (j=n-1; j>=0; j--)
       if (matrix[i][j]) {                        // if occupied ...
@@ -165,7 +166,7 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 	}
 	
       }
-  
+*/  
   
   /* apply the relabeling to the matrix */
 
