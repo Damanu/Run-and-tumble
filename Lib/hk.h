@@ -119,8 +119,8 @@ int hoshen_kopelman(int **matrix, int m, int n) {
     for (j=0; j<n; j++)
       if (matrix[i][j]) {                        // if occupied ...
 
-	int up = (i==0 ? matrix[m-1][j] : matrix[i-1][j]);    //  look up  
-	int left = (j==0 ? matrix[i][n-1]: matrix[i][j-1]);  //  look left
+	int up = (i==0 ? 0: matrix[i-1][j]);    //  look up  
+	int left = (j==0 ? 0: matrix[i][j-1]);  //  look left
         printf("%d,%d ",i,j);	
 	switch (!!up + !!left) {
 	  
@@ -139,19 +139,19 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 	
       }
       printf("\n");
-/*
+
   for (i=m-1; i>=0; i--)
     for (j=n-1; j>=0; j--)
       if (matrix[i][j]) {                        // if occupied ...
 
 	int up = (i==m-1 ? matrix[0][j] : matrix[i+1][j]);    //  look up  
 	int left = (j==n-1 ? matrix[i][0] : matrix[i][j+1]);  //  look left
-	printf("ij: %d,%d up: %d, left: %d\n",i,j,up,left);
+//	printf("ij: %d,%d up: %d, left: %d\n",i,j,up,left);
 	switch (!!up + !!left) {
 	  
 	case 0:
 	  printf("case 0\n");
-	  matrix[i][j] = uf_make_set();      // a new cluster
+//	  matrix[i][j] = uf_make_set();      // a new cluster
 	  break;
 	  
 	case 1:                              // part of an existing cluster
@@ -166,7 +166,7 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 	}
 	
       }
-*/  
+ 	printf("\n"); 
   
   /* apply the relabeling to the matrix */
 
