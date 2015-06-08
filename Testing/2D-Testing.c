@@ -84,19 +84,20 @@ scanf("\n%d",&tottime);
 //----------------------------------------------------------------
 
 //----------mode----------
-	int mode=4;
+	int mode=5;
 //-----------------------
 
 	FILE *f;		//create file pointer		
 
-	N = 30;
-	int m=5;
+	N = 300;
+	int m=N;
 	alph =0.03;
 	phi = 0.3;	
 	int T = 1000;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
+	printf("before switch");
 	switch (mode)
 	{
 	case 0:
@@ -253,13 +254,63 @@ scanf("\n%d",&tottime);
 		{
 //			waitFor(0.1);
 			lattice=timestep_2_2D(lattice,N,N,M,alph);
-			system("clear");
-			matrix=transform_2d(lattice,M,N,N);
+//			system("clear");
+//			matrix=transform_2d(lattice,M,N,N);
 //			print_matrix(matrix,N,N);
 		}
+		matrix=transform_2d(lattice,M,N,N);
 		clusters = hoshen_kopelman(matrix,N,N);
 		print_matrix(matrix,N,N);
-		printf("clusters: %d",clusters);
+		printf("clusters: %d\n",clusters);
+		break;
+	case 5:		//clustercounting to get clustersize distribution
+		printf("mode: %d\n",mode);
+		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+		M=roundf(M_);
+		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
+		for(i=0;i<T;i++)	//do T timesteps
+		{
+			lattice=timestep_2_2D(lattice,N,N,M,alph);
+		}
+		matrix=transform_2d(lattice,M,N,N);
+		print_matrix(matrix,N,N);
+		clusters = hoshen_kopelman(matrix,N,N);
+		//-----cluster counting--------
+		f = fopen("data_Clustersizedistribution_2D.txt","w"); //open file stream
+		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
+		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
+		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+		for(ccount=1;ccount<=clusters;ccount++)
+		{
+			clsize=0;
+			for(i=0;i<N;i++)	//search in whole matrix
+			{
+				for(ii=0;ii<N/*or m if the matrix is not quadratic*/; ii++)
+				{
+					if(matrix[i][ii]==ccount)
+					{
+						clsize+=1;
+					}
+				}
+			}
+			numofclusters_2D[clsize]+=1;
+		}
+		int max_A; 	//maximal cluster size
+		for(i=2;i<M;i++)
+		{
+			if(numofclusters_2D[i]!=0)
+			{
+				max_A=i;
+			}
+		}
+		printf("max_A = %d\n",max_A);
+		double Fc_2D;
+		for(i=2;i<=max_A;i++)
+		{
+			Fc_2D=(double)numofclusters_2D[i]/((double)M);		//normalization of Fc
+			fprintf(f,"%d	%lf\n",i,Fc_2D);
+		}
+		fclose(f);
 		break;
 	}	
 /*
