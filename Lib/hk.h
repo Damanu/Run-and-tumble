@@ -137,8 +137,8 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 	  break;
 	}
       }
-      printf("\n");
-	printf("\nafter first switch\n");	
+//      printf("\n");
+//	printf("\nafter first switch\n");	
 	int iter=0;
 	for (iter=0;iter<1;iter++)
 	  for (i=m-1; i>=0; i--)
@@ -151,21 +151,21 @@ int hoshen_kopelman(int **matrix, int m, int n) {
 		switch (!!up + !!left) {
 		  
 		case 0:
-		  printf("case 0\n");
+//		  printf("case 0\n");
 	//	  matrix[i][j] = uf_make_set();      // a new cluster
 		  break;
 		  
 		case 1:                              // part of an existing cluster
-		  printf("case 1\n");
+//		  printf("case 1\n");
 		  matrix[i][j] = max(up,left);       // whichever is nonzero is labelled
 		  break;
 		  
 		case 2:                              // this site binds two clusters
-		  printf("case 2\n");
+//		  printf("case 2\n");
 		  matrix[i][j] = uf_union(up, left);
 		  break;
 		}
-	printf("i: %d,j: %d \n",i,j);	
+//	printf("i: %d,j: %d \n",i,j);	
 	      }
 	//	printf("\n"); 
 	 
@@ -174,7 +174,7 @@ int hoshen_kopelman(int **matrix, int m, int n) {
   /* This is a little bit sneaky.. we create a mapping from the canonical labels
      determined by union/find into a new set of canonical labels, which are 
      guaranteed to be sequential. */
- printf("after second switch");
+// printf("after second switch");
   int *new_labels = calloc(sizeof(int), n_labels); // allocate array, initialized to zero
   
   for (i=0; i<m; i++)

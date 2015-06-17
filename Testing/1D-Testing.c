@@ -84,9 +84,9 @@ scanf("\n%d",&tottime);
 
 	N = 60000;
 	int m=1;
-	alph =0.0001;
+	alph =0.001;
 	phi = 0.5;	
-	int T = 1000;
+	int T = 10000;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
@@ -116,9 +116,9 @@ scanf("\n%d",&tottime);
 		int *numofclusters;
 		numofclusters=(int *)calloc(M,sizeof(int));
 		int max_l=0;
-		int iter=10000;
+		int iter=1000;
 		lattice = init_lat_2(N,M,phi);
-		for(i=0;i<20000000;i++)		//equilibration
+		for(i=0;i<T;i++)		//equilibration
 		{
 			lattice=timestep_2(lattice,N,M,alph);
 			printf("i: %d\n",i);

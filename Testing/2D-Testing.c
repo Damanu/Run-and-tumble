@@ -89,15 +89,15 @@ scanf("\n%d",&tottime);
 
 	FILE *f;		//create file pointer		
 
-	N = 300;
+	N = 10;
 	int m=N;
-	alph =0.03;
-	phi = 0.3;	
-	int T = 1000;
+	alph =0.05;
+	phi = 0.5;	
+	int T = 10;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
-	printf("before switch");
+//	printf("before switch");
 	switch (mode)
 	{
 	case 0:
@@ -267,36 +267,41 @@ scanf("\n%d",&tottime);
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
-		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
-		for(i=0;i<T;i++)	//do T timesteps
-		{
-			lattice=timestep_2_2D(lattice,N,N,M,alph);
-		}
-		matrix=transform_2d(lattice,M,N,N);
-		print_matrix(matrix,N,N);
-		clusters = hoshen_kopelman(matrix,N,N);
-		//-----cluster counting--------
-		f = fopen("data_Clustersizedistribution_2D.txt","w"); //open file stream
-		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
-		for(ccount=1;ccount<=clusters;ccount++)
+		int n,numofmeasure=30;		//n ,number of measurements
+		for(n=0;n<numofmeasure;n++)
 		{
-			clsize=0;
-			for(i=0;i<N;i++)	//search in whole matrix
+			lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
+			for(i=0;i<T;i++)	//do T timesteps
 			{
-				for(ii=0;ii<N/*or m if the matrix is not quadratic*/; ii++)
+				lattice=timestep_2_2D(lattice,N,N,M,alph);
+			}
+			matrix=transform_2d(lattice,M,N,N);
+//			print_matrix(matrix,N,N);
+			clusters = hoshen_kopelman(matrix,N,N);
+			//-----cluster counting--------
+			f = fopen("data_Clustersizedistribution_2D_alph=0.05,phi=0.5,NxM=1000x1000.txt","w"); //open file stream
+			fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
+			for(ccount=1;ccount<=clusters;ccount++)
+			{
+				clsize=0;
+				for(i=0;i<N;i++)	//search in whole matrix
 				{
-					if(matrix[i][ii]==ccount)
+					for(ii=0;ii<N/*or m if the matrix is not quadratic*/; ii++)
 					{
-						clsize+=1;
+						if(matrix[i][ii]==ccount)
+						{
+							clsize+=1;
+						}
 					}
 				}
+				numofclusters_2D[clsize]+=1;
 			}
-			numofclusters_2D[clsize]+=1;
+			free(lattice);
 		}
 		int max_A; 	//maximal cluster size
-		for(i=2;i<M;i++)
+		for(i=1;i<M;i++)
 		{
 			if(numofclusters_2D[i]!=0)
 			{
@@ -307,7 +312,7 @@ scanf("\n%d",&tottime);
 		double Fc_2D;
 		for(i=2;i<=max_A;i++)
 		{
-			Fc_2D=(double)numofclusters_2D[i]/((double)M);		//normalization of Fc
+			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalization of Fc
 			fprintf(f,"%d	%lf\n",i,Fc_2D);
 		}
 		fclose(f);
@@ -407,9 +412,10 @@ int ** transform_2d(struct particle * lattice, int M,int m, int n)
 	int i,j;
 	int ** matrix;
 	matrix = (int **)calloc(m,sizeof(int *));	//allocate memory
+//	static int matrix[10000][10000];
 	for (i=0; i<m; i++)		//allocate memory 
 	{
-      		matrix[i] = (int *)calloc(n, sizeof(int));
+    		matrix[i] = (int *)calloc(n, sizeof(int));
 		for(j=0;j<n;j++)
 		{
 			matrix[i][j]=0; //set all matrix elements 0	
@@ -1067,7 +1073,6 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 	int ** r_lattice;
 	int *ind2D;
 	r_lattice=transform_2d(lattice,M,N,N);
-//--this algorithm has to be optimized, there must be a shorter way--
 	for(i = 0; i < M; i++)
 	{
 		ind=rand_index(M);	//generate random index
@@ -1181,6 +1186,11 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 				
 			}
 		}
+	}
+	//----here was a memory leak, solved with this loop, forgot the inner pointer of matrix (or r_lattice)
+	for(i=0;i<N;i++)
+	{
+		free(r_lattice[i]);
 	}
 	free(r_lattice);
 	return lattice;
