@@ -84,16 +84,16 @@ scanf("\n%d",&tottime);
 //----------------------------------------------------------------
 
 //----------mode----------
-	int mode=5;
+	int mode=0;
 //-----------------------
 
 	FILE *f;		//create file pointer		
 
-	N = 10;
+	N = 500;
 	int m=N;
-	alph =0.05;
-	phi = 0.5;	
-	int T = 10;
+	alph =0.01;
+	phi = 0.3;	
+	int T = 10000;
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
@@ -102,6 +102,8 @@ scanf("\n%d",&tottime);
 	{
 	case 0:
 		printf("no Mode");
+//		f = fopen("Empty_%d+%d_alph=%f_phi=%f","w",N,N,alph,phi);
+//		fclose(f);
 		break;
 	case 1:		//mean square distance calculation
 		f = fopen("data_meandist_T.txt","w"); //open file stream
@@ -270,10 +272,16 @@ scanf("\n%d",&tottime);
 		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=30;		//n ,number of measurements
+		printf("number of iterations: %d",numofmeasure);
+		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
+		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
+		{
+			lattice=timestep_2_2D(lattice,N,N,M,alph);
+		}
+		int T_step=100;
 		for(n=0;n<numofmeasure;n++)
 		{
-			lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
-			for(i=0;i<T;i++)	//do T timesteps
+			for(i=0;i<T_step;i++)	//do T_step timesteps
 			{
 				lattice=timestep_2_2D(lattice,N,N,M,alph);
 			}
@@ -299,6 +307,7 @@ scanf("\n%d",&tottime);
 				numofclusters_2D[clsize]+=1;
 			}
 			free(lattice);
+			printf("n: %d",n);
 		}
 		int max_A; 	//maximal cluster size
 		for(i=1;i<M;i++)
