@@ -53,16 +53,23 @@ int wallcount_2;	//wallcount for 2D in 2 -2 direction
 //-------------Global Variables--------------
 static long int LATTICESIZE=10000000;
 //--------------Main Program---------------------
-int main() 
+int main(int argc, char *argv[]) 
 {
+printf("\n--------------------\n");
+printf("1D-Testing started\n");
+printf("--------------------\n\n");
+//----------------Argument info-------------------------
+if(argv[1] == 0)
+{
+	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. aditional name ([Name]_[aditional Name])\n");
+	exit(0);
+}
+
 //-----------------Parameter input---------------------------
 srand(time(0));
 //double r = rand()/(double)RAND_MAX;
 long t=time(0);
 double r=ran3(&t);
-printf("%lf",r);
-printf("\n--------------------\n");
-printf("1D-Testing started\n");
 float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
 int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
 char word;
@@ -84,16 +91,21 @@ scanf("\n%d",&tottime);
 //----------------------------------------------------------------
 
 //----------mode----------
-	int mode=2;
+	int mode=atoi(argv[1]);
 //-----------------------
 
 	FILE *f;		//create file pointer		
 
-	N = 10000;
+	N = atoi(argv[2]);
 	int m=N;
-	alph =0.001;
-	phi = 0.07;	
-	int T = 10000000;
+	alph =atof(argv[3]);
+	phi = atof(argv[4]);	
+	int T = 1000;
+	char *s_N,*s_alph,*s_phi;
+	char output[100];
+	sprintf(output,"Data_N=%d_alph=%1.3f_phi=%1.3f_%s",N,alph,phi,argv[5]);
+//	printf("%s\n",output);
+//	printf("mode: %d\nN=%d\nalph=%.3f\nphi=%.3f\n",mode,N,alph,phi);
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 	M=roundf(M_);
@@ -119,14 +131,14 @@ scanf("\n%d",&tottime);
 		break;
 	case 2:		//cluster-counting
 		
-		f = fopen("data_Fc_l_1D_N=40000.txt","w"); //open file stream
+		f = fopen(output,"w"); //open file stream
 		fprintf(f,"l	Fc\n");
 		double *Fc;
 		Fc=(double *)calloc(M,sizeof(double));
 		int *numofclusters;
 		numofclusters=(int *)calloc(M,sizeof(int));
 		int max_l=0;
-		int iter=1000;
+		int iter=500;
 		lattice = init_lat_2(N,M,phi);
 		for(i=0;i<T;i++)		//equilibration
 		{
@@ -271,20 +283,20 @@ scanf("\n%d",&tottime);
 		M=roundf(M_);
 		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
-		int n,numofmeasure=1000;		//n ,number of measurements
-		printf("number of iterations: %d",numofmeasure);
+		int n,numofmeasure=500;		//n ,number of measurements
+//		printf("number of iterations: %d",numofmeasure);
 		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
 		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 		{
 			lattice=timestep_2_2D(lattice,N,N,M,alph);
-			printf("i: %d\n",i);
+//			printf("i: %d\n",i);
 		}
 		int T_step=100;
-		f = fopen("data_Clustersizedistribution_2D_alph=0.001,phi=0.01,NxM=500x500.txt","w"); //open file stream
+		f = fopen(output,"w"); //open file stream
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 		for(n=0;n<numofmeasure;n++)
 		{
-			printf("n: %d",n);
+//			printf("n: %d",n);
 			for(i=0;i<T_step;i++)	//do T_step timesteps
 			{
 				lattice=timestep_2_2D(lattice,N,N,M,alph);
@@ -318,13 +330,15 @@ scanf("\n%d",&tottime);
 				max_A=i;
 			}
 		}
-		printf("max_A = %d\n",max_A);
+//		printf("max_A = %d\n",max_A);
 		double Fc_2D;
 		for(i=1;i<=max_A;i++)
 		{
 			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalization of Fc
 			if(Fc_2D!=0)
+			{
 				fprintf(f,"%d	%lf\n",i,Fc_2D);
+			}
 		}
 		fclose(f);
 		break;
