@@ -56,12 +56,12 @@ static long int LATTICESIZE=10000000;
 int main(int argc, char *argv[]) 
 {
 printf("\n--------------------\n");
-printf("1D-Testing started\n");
+printf("2D-Testing started\n");
 printf("--------------------\n\n");
 //----------------Argument info-------------------------
 if(argv[1] == 0)
 {
-	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. aditional name ([Name]_[aditional Name])\n");
+	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
 	exit(0);
 }
 
@@ -78,6 +78,8 @@ struct particle * lattice;
 int * r_lattice;
 double m_d;
 int ** matrix;
+double Lc;
+
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
 scanf("\n%d", &N);			//get number of sites
@@ -100,10 +102,9 @@ scanf("\n%d",&tottime);
 	int m=N;
 	alph =atof(argv[3]);
 	phi = atof(argv[4]);	
-	int T = 1000;
-	char *s_N,*s_alph,*s_phi;
+	int T = atoi(argv[5]);
 	char output[100];
-	sprintf(output,"Data_N=%d_alph=%1.3f_phi=%1.3f_%s",N,alph,phi,argv[5]);
+	sprintf(output,"Data_N=%d_alph=%1.3f_phi=%1.3f_T=%d_%s",N,alph,phi,T,argv[6]);
 //	printf("%s\n",output);
 //	printf("mode: %d\nN=%d\nalph=%.3f\nphi=%.3f\n",mode,N,alph,phi);
 	tottime=T;
@@ -138,16 +139,16 @@ scanf("\n%d",&tottime);
 		int *numofclusters;
 		numofclusters=(int *)calloc(M,sizeof(int));
 		int max_l=0;
-		int iter=500;
+		int iter=1000;
 		lattice = init_lat_2(N,M,phi);
 		for(i=0;i<T;i++)		//equilibration
 		{
 			lattice=timestep_2(lattice,N,M,alph);
-			printf("i: %d\n",i);
+	//		printf("i: %d\n",i);
 		}
 		for(ii=0;ii<iter;ii++)
 		{
-			printf("ii: %d\n",ii);
+		//	printf("ii: %d\n",ii);
 			for(i=0;i<100;i++)
 			{
 				lattice=timestep_2(lattice,N,M,alph);
@@ -157,10 +158,10 @@ scanf("\n%d",&tottime);
 		//	printf("clusters: %d\n",clusters);
 			int ccount=0;
 			int size=1;
-//			for(i=0;i<M;i++)
-//			{
-//				numofclusters[i]=0;
-//			}
+			for(i=0;i<M;i++)
+			{
+				numofclusters[i]=0;
+			}
 			for(i=0;i<=N;i++)	//count the number of clusters of a specific size and write them into an array --> array[clustersize]=number of clusters with size clustersize
 			{
 				if(i==N)   //if the last site has been exeded
@@ -226,7 +227,6 @@ scanf("\n%d",&tottime);
 		lattice = init_lat_2(N,M,phi);		//initialize lattice
 		T=1000000;
 		int clusters;
-		double Lc;
 		double ti;
 		int stepsize=200;
 		for(i=stepsize;i<=T;i+=stepsize)
@@ -283,7 +283,7 @@ scanf("\n%d",&tottime);
 		M=roundf(M_);
 		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
-		int n,numofmeasure=500;		//n ,number of measurements
+		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
 		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
 		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
@@ -342,7 +342,40 @@ scanf("\n%d",&tottime);
 		}
 		fclose(f);
 		break;
-	}	
+	
+	case 6:		//data collapse average cluster size Lc as function of lengthscale lc 1D
+		
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"lc	Lc	phi	alph\n");
+		double lc;
+		int j;
+		for(i=1;i<=91;i+=10)
+		{
+			printf("i: %d\n",i);
+			phi = (float)i/100.0;
+			for(ii=1;ii<=1001;ii+=50)
+			{
+				printf("ii: %d\n",ii);
+				alph=(float)ii/1000.0;
+				lc=sqrt(2*phi/((1-phi)*alph));
+				float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+				M=roundf(M_);
+				lattice = init_lat_2(N,M,phi);				
+				for(j=0;j<T;j++)		//equilibration
+				{
+					lattice=timestep_2(lattice,N,M,alph);
+			//		printf("i: %d\n",i);
+				}
+				matrix=transform_2d(lattice,M,1,N);
+				int clusters = hoshen_kopelman(matrix,1,N);
+				Lc=(double)M/(double)clusters;	
+				fprintf(f,"%lf	%lf	%lf	%lf\n",lc,Lc,phi,alph);
+				free(lattice);
+				free(matrix);
+			}
+		}
+		break;	
+	}
 /*
 	printf("M: %d\n",M);
 	lattice = init_lat_2(N,M,phi);		//initalize lattice
