@@ -222,14 +222,14 @@ scanf("\n%d",&tottime);
 	
 	case 3: 	//calculating equilibration time (output average cluster size Lc over #timesteps T)
 		
-		f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+//		f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc\n");
 		lattice = init_lat_2(N,M,phi);		//initialize lattice
-		T=1000000;
 		int clusters;
 		double ti;
 		int stepsize=200;
-		for(i=stepsize;i<=T;i+=stepsize)
+		for(i=stepsize;i<=T;i=i+stepsize)
 		{
 			printf("i: %d\n",i);
 			for(ii=0;ii<stepsize;ii++)
@@ -249,13 +249,15 @@ scanf("\n%d",&tottime);
 		}
 		fclose(f);	//close data stream
 		break;
-	case 4: 	//2D .....
+	case 4: 	//2D visualisation output is position of particles (snapshot)
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"x	y\n"); 		//A is the clustersize and Fc the distribution of it
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
 		lattice=init_lat_2_2D(N*N,M,phi);
 		int ** matrix;
-		matrix=transform_2d(lattice,M,N,N);
-		print_matrix(matrix,N,N);
+//		matrix=transform_2d(lattice,M,N,N);
+//		print_matrix(matrix,N,N);
 /*		double bla=0;
  calculating mean value of rnddirection_2D --> should be near 0
 		for(i=0;i<100000000;i++)
@@ -272,10 +274,19 @@ scanf("\n%d",&tottime);
 //			matrix=transform_2d(lattice,M,N,N);
 //			print_matrix(matrix,N,N);
 		}
-		matrix=transform_2d(lattice,M,N,N);
-		clusters = hoshen_kopelman(matrix,N,N);
-		print_matrix(matrix,N,N);
-		printf("clusters: %d\n",clusters);
+//		matrix=transform_2d(lattice,M,N,N);
+//		clusters = hoshen_kopelman(matrix,N,N);
+//		printf("----------------------------\n");
+//		print_matrix(matrix,N,N);
+//		printf("clusters: %d\n",clusters);
+		for(i=0;i<M;i++)
+		{
+			int x=lattice[i].ind/N;		//calculate raw index in 2D matrix
+			int y=lattice[i].ind-x*N;	//calculate column index in 2D matrix
+			fprintf(f,"%d	%d\n",x,y);
+			printf("%d	%d\n",x,y);
+		}
+		fclose(f);
 		break;
 	case 5:		//clustercounting to get clustersize distribution
 		printf("mode: %d\n",mode);
@@ -349,13 +360,13 @@ scanf("\n%d",&tottime);
 		fprintf(f,"lc	Lc	phi	alph\n");
 		double lc;
 		int j;
-		for(i=1;i<=91;i+=10)
-		{
-			printf("i: %d\n",i);
-			phi = (float)i/100.0;
+	//	for(i=1;i<=101;i+=10)
+	//	{
+//			printf("i: %d\n",i);
+//			phi = (float)i/100.0;
 			for(ii=1;ii<=1001;ii+=50)
 			{
-				printf("ii: %d\n",ii);
+//				printf("ii: %d\n",ii);
 				alph=(float)ii/1000.0;
 				lc=sqrt(2*phi/((1-phi)*alph));
 				float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
@@ -373,7 +384,7 @@ scanf("\n%d",&tottime);
 				free(lattice);
 				free(matrix);
 			}
-		}
+	//	}
 		break;	
 	}
 /*
