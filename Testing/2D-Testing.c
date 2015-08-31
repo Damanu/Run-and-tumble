@@ -61,7 +61,7 @@ printf("--------------------\n\n");
 //----------------Argument info-------------------------
 if(argv[1] == 0)
 {
-	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
+	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n		7:equilibration time 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
 	exit(0);
 }
 
@@ -119,14 +119,18 @@ scanf("\n%d",&tottime);
 //		fclose(f);
 		break;
 	case 1:		//mean square distance calculation
+		printf("mode 1\n");
 		f = fopen("data_meandist_T.txt","w"); //open file stream
 		fprintf(f,"meandist	T\n");
-		for(i=0;i<1000;i++)
+		for(i=0;i<1;i++)
 		{
-			lattice = init_lat_2(N,i,phi);
-			m_d=mean_dist_2(lattice,i,N,alph,T); 
-	//		printf("mean dist: %lf \n",m_d);
-			fprintf(f,"%lf	%d\n",m_d,i);
+	//		printf("in loopi\n");
+			lattice = init_lat_2(N,M,phi);
+	//		printf("after init\n");
+			m_d=mean_dist_2(lattice,M,N,alph,T);
+			 
+			printf("mean dist: %lf \n",m_d);
+			fprintf(f,"%lf	%d\n",m_d,M);
 		}
 		fclose(f);
 		break;
@@ -222,6 +226,7 @@ scanf("\n%d",&tottime);
 	
 	case 3: 	//calculating equilibration time (output average cluster size Lc over #timesteps T)
 		
+<<<<<<< HEAD
 //		f = fopen("data_Equilibrationtime.txt","w"); //open file stream
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc\n");
@@ -230,20 +235,34 @@ scanf("\n%d",&tottime);
 		double ti;
 		int stepsize=200;
 		for(i=stepsize;i<=T;i=i+stepsize)
+=======
+		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"T	Lc\n");
+		lattice = init_lat_2(N,M,phi);		//initialize lattice
+//		T=1000000;
+		m=1;
+		int clusters;
+		double ti;
+		int stepsize=100;
+		for(i=stepsize;i<=T;i+=stepsize)
+>>>>>>> 6b0390817e69264e7757c8e463f1fcde443336d4
 		{
-			printf("i: %d\n",i);
+//			printf("i: %d\n",i);
 			for(ii=0;ii<stepsize;ii++)
 			{
 				lattice=timestep_2(lattice,N,M,alph);		//make one timestep
 			}
 			matrix=transform_2d(lattice,M,m,N);		//create hk matrix
 			clusters = hoshen_kopelman(matrix,m,N);		//calculate number of clusters
-			for(ii=0;i<m;i++)
+		//	printf("clusters: %d\n", clusters);
+			for(ii=0;ii<m;ii++)
 			{
-				free(matrix[i]);
+				free(matrix[ii]);
 			}
 			free(matrix);					//give space of matrix free (or I get a space problem)
 			Lc=(double)M/(double)clusters;			//calculate mean cluster size
+		//	printf("Lc: %lf\n",Lc);
 //			ti=(double)i/(double)T;
 			fprintf(f,"%d	%lf\n",i,Lc);			//write data to file
 		}
@@ -386,6 +405,37 @@ scanf("\n%d",&tottime);
 			}
 	//	}
 		break;	
+	case 7: 	//calculating equilibration time 2D (output average cluster size Lc over #timesteps T)
+		
+		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"T	Lc\n");
+		lattice = init_lat_2_2D(N,M,phi);		//initialize lattice
+//		T=1000000;
+		int clusters_2;
+		double ti_2;
+		int stepsize_2=1;
+		for(i=stepsize_2;i<=T;i+=stepsize_2)
+		{
+		//	printf("i: %d\n",i);
+			for(ii=0;ii<stepsize_2;ii++)
+			{
+				lattice=timestep_2_2D(lattice,N,N,M,alph);		//make one timestep
+			}
+			matrix=transform_2d(lattice,M,N,N);		//create hk matrix
+			clusters_2 = hoshen_kopelman(matrix,N,N);		//calculate number of clusters
+		//	printf("clusters: %d\n",clusters_2);
+			for(ii=0;ii<m;ii++)
+			{
+				free(matrix[ii]);
+			}
+			free(matrix);					//give space of matrix free (or I get a space problem)
+			Lc=(double)M/(double)clusters_2;			//calculate mean cluster size
+//			ti=(double)i/(double)T;
+			fprintf(f,"%d	%lf\n",i,Lc);			//write data to file
+		}
+		fclose(f);	//close data stream
+		break;
 	}
 /*
 	printf("M: %d\n",M);
@@ -1006,6 +1056,7 @@ int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double al
 
 double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T)
 {
+//	printf("in md2");
 	int i;
 	double dist=0;
 	int * index;
@@ -1020,10 +1071,12 @@ double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T)
 	}
 	for(i=0;i<M;i++)
 	{
-		dist += abs(abs(N*lattice[i].wallcount)-abs(lattice[i].ind-index[i]));
+		dist +=pow( (abs(N*lattice[i].wallcount)-abs(lattice[i].ind-index[i])),2);
+//		dist += (lattice[i].ind-index[i])^2;
 	}
 	double m_d = dist/(double)M;
 	free(index);
+//	printf("m_d: %lf",m_d);
 	return m_d;
 }
 
