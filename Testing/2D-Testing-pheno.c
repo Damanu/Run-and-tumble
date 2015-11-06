@@ -18,27 +18,26 @@
 #include "./../Lib/hk.h"
 //#include <unistd.h>
 //--------------Prototypes-----------------------
-int * init_lat(int N,int M,float phi);
 int rand_index(double arraylength);
 int length(int * array);
 int rnddirection(); 
-int * timestep(int * lattice,int N, int M, double alph);
 //char * geturand();
 int tumble(int dir,double alph);
 int cluster_counter(int * lattice,int N);
-int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double alph);
+int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, double phi,double alph);
 int find(int * lattice,int N);
-struct particle * init_lat_2(int N,int M,float phi); 
+struct particle * init_lat_2(int N,int M,double phi,double alph,double tau); 
 struct particle * timestep_2(struct particle * lattice,int N,int M, double alph);
-int * transform(struct particle * lattice,int M, int N);
 double mean_dist_2(struct particle * lattice,int M,int N,double alph,int T);
 struct particle * timestep_alone(struct particle * lattice, int N, int M, double alph);
 int ** transform_2d(struct particle * lattice, int M,int m, int n);
+int * transform(struct particle * lattice,int M, int N);
 struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, double alph);
 int rnddirection_2D(); 
-struct particle * init_lat_2_2D(int N,int M,float phi); 
+struct particle * init_lat_2_2D(int N,int M,double phi,double alph,double tau); 
 int * get_index_2D(int ind,int N);
 void waitFor (double secs);
+double alph_change(double alph, double traptime,double tau);
 //----------------Structures----------------------
 struct particle
 {
@@ -48,12 +47,14 @@ int wallcount;		//counter how often it passed the end of lattice (right end is +
 int type;		//(optional) a type of particle (maybe not needed)
 int wallcount_1;	//wallcount for 2D in 1 -1 direction
 int wallcount_2;	//wallcount for 2D in 2 -2 direction
-double alph;
-double traptime;
+double alph;		//probabilitiy of tumbling
+double traptime;	//time the particle was not able to move
+double tau;		//rat with which the particle changes alpha (if trapped)
 };
 
 //-------------Global Variables--------------
-static long int LATTICESIZE=10000000;
+int ALPH_CHANGE_TYPE=1;
+double tau=10;
 //--------------Main Program---------------------
 int main(int argc, char *argv[]) 
 {
@@ -63,7 +64,7 @@ printf("--------------------\n\n");
 //----------------Argument info-------------------------
 if(argv[1] == 0)
 {
-	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: no mode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n		7:equilibration time 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
+	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: Testmode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n		7:equilibration time 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
 	exit(0);
 }
 
@@ -72,7 +73,7 @@ srand(time(0));
 //double r = rand()/(double)RAND_MAX;
 long t=time(0);
 double r=ran3(&t);
-float alph, phi;			//alph: propability for tumbling event; phi: particle concentration
+double alph, phi;			//alph: propability for tumbling event; phi: particle concentration
 int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
 char word;
 int i, ii;
@@ -102,11 +103,11 @@ scanf("\n%d",&tottime);
 
 	N = atoi(argv[2]);
 	int m=N;
-	alph =atof(argv[3]);
-	phi = atof(argv[4]);	
-	int T = atoi(argv[5]);
+	alph =atof(argv[3]);	//convert to double	
+	phi = atof(argv[4]);	//convert to double
+	int T = atoi(argv[5]);	//convert to int
 	char output[100];
-	sprintf(output,"Data_N=%d_alph=%1.3f_phi=%1.3f_T=%d_%s",N,alph,phi,T,argv[6]);
+	sprintf(output,"Data_N=%d_alph=%1.3lf_phi=%1.3lf_T=%d_%s",N,alph,phi,T,argv[6]);
 //	printf("%s\n",output);
 //	printf("mode: %d\nN=%d\nalph=%.3f\nphi=%.3f\n",mode,N,alph,phi);
 	tottime=T;
@@ -116,7 +117,13 @@ scanf("\n%d",&tottime);
 	switch (mode)
 	{
 	case 0:
-		printf("no Mode");
+		printf("Testmode");
+		lattice = init_lat_2(100,100,0.5,0.5,100);
+		int t=0;
+		for(t=0;t<100;t++)
+		{	
+			printf("alph: %lf\n",alph_change(0.5,t,100));
+		}
 //		f = fopen("Empty_%d+%d_alph=%f_phi=%f","w",N,N,alph,phi);
 //		fclose(f);
 		break;
@@ -127,7 +134,7 @@ scanf("\n%d",&tottime);
 		for(i=0;i<1;i++)
 		{
 	//		printf("in loopi\n");
-			lattice = init_lat_2(N,M,phi);
+			lattice = init_lat_2(N,M,phi,alph,tau);
 	//		printf("after init\n");
 			m_d=mean_dist_2(lattice,M,N,alph,T);
 			 
@@ -146,7 +153,7 @@ scanf("\n%d",&tottime);
 		numofclusters=(int *)calloc(M,sizeof(int));
 		int max_l=0;
 		int iter=1000;
-		lattice = init_lat_2(N,M,phi);
+		lattice = init_lat_2(N,M,phi,alph,tau);
 		for(i=0;i<T;i++)		//equilibration
 		{
 			lattice=timestep_2(lattice,N,M,alph);
@@ -231,7 +238,7 @@ scanf("\n%d",&tottime);
 		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc\n");
-		lattice = init_lat_2(N,M,phi);		//initialize lattice
+		lattice = init_lat_2(N,M,phi,alph,tau);		//initialize lattice
 //		T=1000000;
 		m=1;
 		int clusters;
@@ -265,7 +272,7 @@ scanf("\n%d",&tottime);
 		fprintf(f,"x	y\n"); 		//A is the clustersize and Fc the distribution of it
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
-		lattice=init_lat_2_2D(N*N,M,phi);
+		lattice=init_lat_2_2D(N*N,M,phi,alph,tau);
 		int ** matrix;
 //		matrix=transform_2d(lattice,M,N,N);
 //		print_matrix(matrix,N,N);
@@ -307,7 +314,7 @@ scanf("\n%d",&tottime);
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
-		lattice=init_lat_2_2D(N*N,M,phi);	//initialize 2D lattice
+		lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
 		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 		{
 			lattice=timestep_2_2D(lattice,N,N,M,alph);
@@ -384,11 +391,11 @@ scanf("\n%d",&tottime);
 	//			alph=-exp((float)ii/1001.0)*0.999/(exp(0.001)-exp(1))+1+exp(1)*0.999/(exp(0.001)-exp(1));
 				double k=(1.0-(0.001-pow(10.0,-0.999))/(1-pow(10.0,-0.999)))/10;
 				double d=(0.001-pow(10.0,-0.999))/(1-pow(10.0,-0.999));
-				alph=pow(10.0,(float)ii/1001.0/4)*k+d; 
+				alph=pow(10.0,(double)ii/1001.0/4)*k+d; 
 				lc=sqrt(2*phi/((1-phi)*alph));
 				float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 				M=roundf(M_);
-				lattice = init_lat_2(N,M,phi);				
+				lattice = init_lat_2(N,M,phi,alph,tau);				
 				for(j=0;j<T;j++)		//equilibration
 				{
 					lattice=timestep_2(lattice,N,M,alph);
@@ -441,7 +448,7 @@ scanf("\n%d",&tottime);
 		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc\n");
-		lattice = init_lat_2_2D(N,M,phi);		//initialize lattice
+		lattice = init_lat_2_2D(N,M,phi,alph,tau);		//initialize lattice
 //		T=1000000;
 		int clusters_2;
 		double ti_2;
@@ -468,6 +475,7 @@ scanf("\n%d",&tottime);
 		fclose(f);	//close data stream
 		break;
 	}
+
 /*
 	printf("M: %d\n",M);
 	lattice = init_lat_2(N,M,phi);		//initalize lattice
@@ -504,55 +512,6 @@ scanf("\n%d",&tottime);
 
 }
 //-----------------Functions-----------------------
-//--init_lat--
-//initialises the Lattice with cells on it
-//input:int N (number of sites),float phi (particle concentration)
-//output: int array lattice (lattice with particles at timestep 0)
-int * init_lat(int N,int M,float phi) 
-{	
-	int * lattice;
-	lattice=(int *)calloc(LATTICESIZE,sizeof(int));		//allocating 10000*sizeof(integer)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
-	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
-	int i = 0;
-	double rndnum;
-	int len = N;
-	int ind;
-	for(i=0; i<N; i++)
-	{
-		lattice[i]=0;
-	}
-	for( i = 0 ; i < M ; i++ )  			//loop to find random indizes
-	{
-		ind=rand_index(len);
-		if(lattice[ind]==0) 
-		{
-			lattice[ind]=rnddirection();	 
-		}
-		else
-		{
-			i--;
-		}
-	}
-	return lattice;
-}
-//--transform--
-//input: struct particle * lattice
-//output: int * r_lattice (transformed lattice to real lattice)
-int * transform(struct particle * lattice,int M, int N)
-{
-	int i;
-//	static int  r_lattice[10000000];	//allocate memory for r_lattice
-	int *r_lattice=(int *)calloc(N,sizeof(int));
-//	for(i=0;i<N;i++)	//set all sites 0
-//	{
-//		r_lattice[i]=0;
-//	}
-	for(i=0;i<M;i++)	//place particles on helper lattice
-	{
-		r_lattice[lattice[i].ind]=lattice[i].dir;
-	}
-	return r_lattice;
-}
 //--transform_2d--
 //input: struct partilce * lattice, number of particles M, number of columns n, number of raws m)
 //output: returns a ** consisting of integers -1, 1, 0
@@ -582,11 +541,29 @@ int ** transform_2d(struct particle * lattice, int M,int m, int n)
 //	print_matrix(matrix,m,n);
 	return matrix;
 }
+//--transform--
+//input: struct particle * lattice
+//output: int * r_lattice (transformed lattice to real lattice)
+int * transform(struct particle * lattice,int M, int N)
+{
+	int i;
+//	static int  r_lattice[10000000];	//allocate memory for r_lattice
+	int *r_lattice=(int *)calloc(N,sizeof(int));
+//	for(i=0;i<N;i++)	//set all sites 0
+//	{
+//		r_lattice[i]=0;
+//	}
+	for(i=0;i<M;i++)	//place particles on helper lattice
+	{
+		r_lattice[lattice[i].ind]=lattice[i].dir;
+	}
+	return r_lattice;
+}
 //--init_lat_2--
 //initialises the Lattice with cells on it
 //input:int N (number of sites),float phi (particle concentration)
 //output: struct particle * lattice (lattice with particles at timestep 0)
-struct particle * init_lat_2(int N,int M,float phi) 
+struct particle * init_lat_2(int N,int M,double phi,double alph,double tau) 
 {	
 	struct particle * lattice;	//allocating 10000*sizeof(particle)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
 	lattice = (struct particle *)calloc(M,sizeof(struct particle));
@@ -604,7 +581,10 @@ struct particle * init_lat_2(int N,int M,float phi)
 	{
 		ind=rand_index(N);			//find random index
 		if(r_lattice[ind]==0) 			//if site is not occupied
-		{	
+		{
+			lattice[i].tau=tau;
+			lattice[i].traptime=0;
+			lattice[i].alph=alph;	
 			lattice[i].wallcount=0;
 			lattice[i].type=0;
 			lattice[i].ind=ind;		
@@ -654,93 +634,6 @@ int rnddirection()
 //		printf("1");
 		return 1;
 	}
-}
-//--timestep--
-//input: int pointer to first element of lattice (allocated in init)
-//output: int * lattice (evolution of lattice after one timestep)
-int * timestep(int * lattice,int N,int M, double alph)
-{
-	long seed = time(NULL);
-	int i = 0;
-	int ind;
-//	printf("M= %d\n",M);
-
-//--this algorithm has to be optimized, there must be a shorter way--
-	for(i = 0; i < M; i++)
-	{
-		ind=rand_index(N);
-//		printf("timestep .. lattice[ind]= %d\n",lattice[ind]);
-		if(lattice[ind] == 0) //if there is no particle try it again
-		{
-			i--;
-		}
-		else
-		{
-			lattice[ind] = tumble(lattice[ind],alph);
-			if(ind == N-1) //if upper periodic boundary 
-			{
-				if(lattice[ind] > 0) 		//find out the direction
-				{
-					if(lattice[0] == 0) 	//find out if "the way if free"
-					{
-						lattice[ind]=0; //move
-						lattice[0]=1;
-					}
-				}
-				else
-				{
-					if(lattice[ind-1] == 0)	//if the way is free
-					{
-						lattice[ind]=0;		//move
-						lattice[ind-1]=-1;
-					}	
-				}
-			}
-			else
-			{
-				if(ind == 0)	//if lower periodic boundary
-				{
-					if(lattice[ind] > 0) 			//find out the direction
-					{
-						if(lattice[ind+1] == 0) 	//find out if "the way if free"
-						{
-							lattice[ind]=0;		//move
-							lattice[ind+1]=1;
-						}
-					}
-					else
-					{
-						if(lattice[N-1] == 0) 		//if the way if free
-						{
-							lattice[ind]=0;		//move
-							lattice[N-1]=-1;
-						}	
-					
-					}
-				}
-				else
-				{
-					if(lattice[ind] > 0) 			//find out the direction
-					{
-						if(lattice[ind+1] == 0) 	//find out if "the way if free"
-						{
-							lattice[ind]=0;		//move
-							lattice[ind+1]=1;
-						}
-					}
-					else	
-					{
-						if(lattice[ind-1] == 0)		//if the way is free
-						{
-							lattice[ind]=0;		//move
-							lattice[ind-1]=-1;
-						}
-					}	
-				}
-			}
-		}
-	}
-	return lattice;
 }
 struct particle * timestep_alone(struct particle * lattice, int N, int M, double alph)
 {	
@@ -832,38 +725,43 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 	for(i = 0; i < M; i++)
 	{
 		ind=rand_index(M);
-//		printf("timestep .. lattice[ind]= %d\n",lattice[ind]);
-//		printf("\n ind: %d\n\n",ind);
 		if(r_lattice[lattice[ind].ind] != 0) //if there is a particle 
 		{
-			lattice[ind].dir = tumble(lattice[ind].dir,alph);	//tumbling event
+			alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].dir = tumble(lattice[ind].dir,lattice[ind].alph);	//tumbling event
 			if(lattice[ind].ind == N-1) //if upper periodic boundary 
 			{
 				if(lattice[ind].dir > 0) 		//find out the direction
 				{
 					if(r_lattice[0] == 0) 	//find out if "the way if free"
 					{
-//						printf("upper -->\n");
-//						printf("dir: %d\n",lattice[ind].dir);
-//						printf("ind: %d\n",ind);
+						lattice[ind].traptime=0;	//add one timeunit to the trap time
 						lattice[ind].wallcount+=1;
 						lattice[ind].ind=0; //move
 						r_lattice[0]=lattice[ind].dir; //copy to helper lattice
 						r_lattice[N-1]=0;	//clear old site
 						continue;
 					}
+
+					else		//if the way is not free
+					{
+						lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						
+					}
 				}
 				else
 				{
 					if(r_lattice[N-2] == 0)	//if the way is free
 					{
-//						printf("upper <--\n");
-//						printf("dir: %d\n",lattice[ind].dir);
-//						printf("ind: %d\n",ind);
+						lattice[ind].traptime=0;	//add one timeunit to the trap time
 						lattice[ind].ind=N-2;		//move
 						r_lattice[N-2]=lattice[ind].dir;	//copy to helper lattice
 						r_lattice[N-1]=0;	//clear old site
 						continue;
+					}
+					else		//if the way is not free
+					{
+						lattice[ind].traptime+=1;	//add one timeunit to the trap time
 					}	
 				}
 			}
@@ -875,28 +773,33 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 					{
 						if(r_lattice[1] == 0) 	//find out if "the way if free"
 						{
-//							printf("lower -->\n");
-//							printf("dir: %d\n",lattice[ind].dir);
-//							printf("ind: %d\n",ind);
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=1;		//move
 							r_lattice[1]=lattice[ind].dir;	//copy to helper lattice
 							r_lattice[0]=0;	//clear old site
 							continue;
 						}
-					}
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+				}
 					else
 					{
 						if(r_lattice[N-1] == 0) 		//if the way if free
 						{
-//							printf("lower <--\n");
-//							printf("dir: %d\n",lattice[ind].dir);
-//							printf("ind: %d\n",ind);
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=N-1;		//move
 							lattice[ind].wallcount-=1;
 							r_lattice[N-1]=lattice[ind].dir;	//copy to helper lattice
 							r_lattice[0]=0;		//clear old site
 							continue;
 						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+	
 					
 					}
 				}
@@ -906,19 +809,31 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 					{
 						if(r_lattice[lattice[ind].ind+1] == 0) 	//find out if "the way if free"
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind+=1;		//move
 							r_lattice[lattice[ind].ind]=lattice[ind].dir;	//copy to helper lattice
 							r_lattice[lattice[ind].ind-1]=0;	//clear old site
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
 						}
+
 					}
 					else	
 					{
 						if(r_lattice[lattice[ind].ind-1] == 0)		//if the way is free
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind-=1;		//move
 							r_lattice[lattice[ind].ind]=lattice[ind].dir;	//copy to helper lattice
 							r_lattice[lattice[ind].ind+1]=0;	//clear old site
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
 						}
+
 					}	
 				}
 			}
@@ -1049,38 +964,6 @@ int cluster_counter(int * lattice,int N)
 //	printf("%d \n",count);
 	return count;
 }
-
-//--mean_dist--
-//input: the lattice, NumOfTSteps (number of times the timestep function is executed, NumOfSweeps (number of times the whole lattice runs for NumOFTSteps times.  
-//output: the mean distance for NumOfSweeps
-//Important: this function only makes sense if there is only one Particle!
-int mean_dist(int NumOfTSteps, int NumOfSweeps,int N, int M, float phi,double alph)
-{	
-	int * lattice;
-	int i,ii;
-	int ind;
-	double mean_distance=0;
-	
-	lattice = init_lat(N,M,phi);
-//	printf("after init\n");
-	//Declare nested function 
-	//--find--
-	//input: lattice
-	//output: int ind (position of the particle)
-	for(ii=0; ii<NumOfSweeps; ii++)		//run the whole counter NumOfSweeps times
-	{
-		
-		ind = find(lattice,N); 
-		for(i=0; i<NumOfTSteps; i++)	//let the particle evolve in time for one MCSweep 
-		{
-			lattice = timestep(lattice,N,M,alph);
-		}
-		mean_distance += (double)abs(ind - find(lattice,N));
-	}
-	mean_distance = mean_distance/(double)NumOfSweeps;	//calculate the mean distance over all runs
-	printf("mean distance: %lf \n",mean_distance);
-	return mean_distance;
-}
 //--mean_dist--
 //input: lattice, number of particles M, Number of sites N, propability to tumble alph, number of timesteps to be made
 //output: mean distance one particle moves
@@ -1180,7 +1063,7 @@ int rnddirection_2D()
 //initialises the Lattice with cells on it
 //input:int N (number of sites),float phi (particle concentration)
 //output: struct particle * lattice (lattice with particles at timestep 0)
-struct particle * init_lat_2_2D(int N,int M,float phi) 
+struct particle * init_lat_2_2D(int N,int M,double phi,double alph,double tau) 
 {	
 //	printf("init lat\n");
 	struct particle * lattice;	//allocating 10000*sizeof(particle)bits space for the lattice array --> should be allocated dynamically, but didnt work till now	
@@ -1200,6 +1083,9 @@ struct particle * init_lat_2_2D(int N,int M,float phi)
 		ind=rand_index(N);			//find random index
 		if(r_lattice[ind]==0) 			//if site is not occupied
 		{	
+			lattice[i].tau=tau;
+			lattice[i].traptime=0;
+			lattice[i].alph=alph;	
 			lattice[i].wallcount=0;
 			lattice[i].type=0;
 			lattice[i].ind=ind;		
@@ -1235,6 +1121,7 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 //		printf("\n ind: %d\n\n",ind);
 		if(r_lattice[ind2D[0],ind2D[1]] != 0) //if there is a particle 
 		{
+			alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
 			lattice[ind].dir = tumble_2D(lattice[ind].dir,alph);	//tumbling event
 			switch (lattice[ind].dir)
 			{
@@ -1245,22 +1132,36 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 					{
 						if(r_lattice[ind2D[0]][0]==0)	//if the way is free
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].wallcount_1+=1;
 							lattice[ind].ind=N*ind2D[0]+ind2D[1]-N+1; //move
 							r_lattice[ind2D[0]][0]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][N-1]=0;	//clear old site
 							continue;
 						}
+						
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
+						}
+	
 					}
 					else // if not
 					{
 //						printf("else 1\n");
 						if(r_lattice[ind2D[0]][ind2D[1]+1]==0)	//if the way is free
 						{	
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=(ind2D[0])*N+ind2D[1]+1; //move (lattice.ind=raw*N+column)
 							r_lattice[ind2D[0]][ind2D[1]+1]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					break;
@@ -1271,21 +1172,33 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 					{
 						if(r_lattice[ind2D[0]][N-1]==0)	//if the way is free
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].wallcount_1-=1;
 							lattice[ind].ind=N*ind2D[0]+ind2D[1]+N-1; //move
 							r_lattice[ind2D[0]][N-1]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][0]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					else // if not
 					{
 						if(r_lattice[ind2D[0]][ind2D[1]-1]==0)	//if the way is free
 						{	
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=(ind2D[0])*N+ind2D[1]-1; //move (lattice.ind=raw*N+column)
 							r_lattice[ind2D[0]][ind2D[1]-1]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					break;
@@ -1295,21 +1208,33 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 					{
 						if(r_lattice[0][ind2D[1]]==0)	//if the way is free
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].wallcount_2+=1;
 							lattice[ind].ind=/*(ind2D[0]+1)*N*/0*N+ind2D[1]; //move (lattice.ind=raw*N+column)
 							r_lattice[0][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[m-1][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					else // if not
 					{
 						if(r_lattice[ind2D[0]+1][ind2D[1]]==0)	//if the way is free
 						{	
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=(ind2D[0]+1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
 							r_lattice[ind2D[0]+1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					break;
@@ -1319,21 +1244,33 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 					{
 						if(r_lattice[N-1][ind2D[1]]==0)	//if the way is free
 						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].wallcount_2-=1;
 							lattice[ind].ind=/*(ind2D[0]+1)*N*/(N-1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
 							r_lattice[N-1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[0][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					else // if not
 					{
 						if(r_lattice[ind2D[0]-1][ind2D[1]]==0)	//if the way is free
 						{	
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
 							lattice[ind].ind=(ind2D[0]-1)*N+ind2D[1]; //move (lattice.ind=raw*N+column)
 							r_lattice[ind2D[0]-1][ind2D[1]]=lattice[ind].dir; //copy to helper lattice
 							r_lattice[ind2D[0]][ind2D[1]]=0;	//clear old site
 							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+							
 						}
 					}
 					break;
@@ -1383,5 +1320,26 @@ int tumble_2D(int dir,double alph)
 	else
 	{
 		return dir;
+	}
+}
+//--alph_change()--
+//input: typ (type of changing), alph, traptime (time a particle cant move), tau (rate of poisson distribution)
+//output: alph that may has changed according to the type of changing
+double alph_change(double alph, double traptime,double tau)
+{
+	long seed = time(NULL);
+	double rndnum = ran3(&seed);
+	switch(ALPH_CHANGE_TYPE)
+	{
+		case 1: //random alpha change with prob poisson
+			if (rndnum > exp(-traptime/tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
+			{
+				return ran3(&seed);	//return a random alpha
+			}
+			else
+			{
+				return alph;		//return alpha like it was
+			}
+			break;
 	}
 }
