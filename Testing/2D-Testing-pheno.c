@@ -54,7 +54,6 @@ double tau;		//rat with which the particle changes alpha (if trapped)
 
 //-------------Global Variables--------------
 int ALPH_CHANGE_TYPE=1;
-double tau=10;
 //--------------Main Program---------------------
 int main(int argc, char *argv[]) 
 {
@@ -74,7 +73,7 @@ srand(time(0));
 long t=time(0);
 double r=ran3(&t);
 double alph, phi;			//alph: propability for tumbling event; phi: particle concentration
-int M,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
+int M,M_2D,N,tottime;			//M: total number of particles; N: total number of sites (or length of lattice array)
 char word;
 int i, ii;
 struct particle * lattice;
@@ -82,6 +81,7 @@ int * r_lattice;
 double m_d;
 int ** matrix;
 double Lc;
+double tau=1000;
 
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
@@ -112,7 +112,9 @@ scanf("\n%d",&tottime);
 //	printf("mode: %d\nN=%d\nalph=%.3f\nphi=%.3f\n",mode,N,alph,phi);
 	tottime=T;
 	float M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+	float M_2D_=(float)(N)*(float)(N)*phi;
 	M=roundf(M_);
+	M_2D=roundf(M_2D_);
 //	printf("before switch");
 	switch (mode)
 	{
@@ -292,11 +294,13 @@ scanf("\n%d",&tottime);
 //			matrix=transform_2d(lattice,M,N,N);
 //			print_matrix(matrix,N,N);
 		}
-//		matrix=transform_2d(lattice,M,N,N);
-//		clusters = hoshen_kopelman(matrix,N,N);
+		matrix=transform_2d(lattice,M,N,N);
+		clusters = hoshen_kopelman(matrix,N,N);
 //		printf("----------------------------\n");
 //		print_matrix(matrix,N,N);
-//		printf("clusters: %d\n",clusters);
+		printf("clusters: %d\n",clusters);
+		printf("alph: %lf\n",lattice[0].alph);
+		
 		for(i=0;i<M;i++)
 		{
 			int x=lattice[i].ind/N;		//calculate raw index in 2D matrix
@@ -444,12 +448,10 @@ scanf("\n%d",&tottime);
 	//	}
 		break;	
 	case 7: 	//calculating equilibration time 2D (output average cluster size Lc over #timesteps T)
-		
-		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
+		printf("mode 7\n");	
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc\n");
-		lattice = init_lat_2_2D(N,M,phi,alph,tau);		//initialize lattice
-//		T=1000000;
+		lattice = init_lat_2_2D(N*N,M_2D,phi,alph,tau);		//initialize lattice
 		int clusters_2;
 		double ti_2;
 		int stepsize_2=1;
@@ -458,9 +460,9 @@ scanf("\n%d",&tottime);
 		//	printf("i: %d\n",i);
 			for(ii=0;ii<stepsize_2;ii++)
 			{
-				lattice=timestep_2_2D(lattice,N,N,M,alph);		//make one timestep
+				lattice=timestep_2_2D(lattice,N,N,M_2D,alph);		//make one timestep
 			}
-			matrix=transform_2d(lattice,M,N,N);		//create hk matrix
+			matrix=transform_2d(lattice,M_2D,N,N);		//create hk matrix
 			clusters_2 = hoshen_kopelman(matrix,N,N);		//calculate number of clusters
 		//	printf("clusters: %d\n",clusters_2);
 			for(ii=0;ii<m;ii++)
@@ -468,9 +470,9 @@ scanf("\n%d",&tottime);
 				free(matrix[ii]);
 			}
 			free(matrix);					//give space of matrix free (or I get a space problem)
-			Lc=(double)M/(double)clusters_2;			//calculate mean cluster size
+			Lc=(double)M_2D/(double)clusters_2;			//calculate mean cluster size
 //			ti=(double)i/(double)T;
-			fprintf(f,"%d	%lf\n",i,Lc);			//write data to file
+			fprintf(f,"%d	%lf	%d\n",i,Lc,clusters_2);			//write data to file
 		}
 		fclose(f);	//close data stream
 		break;
@@ -727,7 +729,7 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 		ind=rand_index(M);
 		if(r_lattice[lattice[ind].ind] != 0) //if there is a particle 
 		{
-			alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].alph=alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
 			lattice[ind].dir = tumble(lattice[ind].dir,lattice[ind].alph);	//tumbling event
 			if(lattice[ind].ind == N-1) //if upper periodic boundary 
 			{
@@ -1070,14 +1072,16 @@ struct particle * init_lat_2_2D(int N,int M,double phi,double alph,double tau)
 	lattice = (struct particle *)calloc(M,sizeof(struct particle));
 	int * r_lattice; 
 	r_lattice=(int *)calloc(N,sizeof(int));		//helper lattice (real lattice)
-	double interval=1/N;			//separate the space 0-1 into N pieces with length interval
 	int i = 0;
-	double rndnum;
 	int ind;
-	for(i=0; i<N; i++)
+
+
+	for(i=0; i<N; i++)	//set all elements of real matrix 0
 	{
 		r_lattice[i]=0;
 	}
+
+
 	for(i=0;i<M;i++)  			//loop to find random indizes
 	{
 		ind=rand_index(N);			//find random index
@@ -1121,8 +1125,8 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 //		printf("\n ind: %d\n\n",ind);
 		if(r_lattice[ind2D[0],ind2D[1]] != 0) //if there is a particle 
 		{
-			alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
-			lattice[ind].dir = tumble_2D(lattice[ind].dir,alph);	//tumbling event
+			lattice[ind].alph=alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].dir = tumble_2D(lattice[ind].dir,lattice[ind].alph);	//tumbling event
 			switch (lattice[ind].dir)
 			{
 				case 1:		//moving right	
@@ -1334,7 +1338,8 @@ double alph_change(double alph, double traptime,double tau)
 		case 1: //random alpha change with prob poisson
 			if (rndnum > exp(-traptime/tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
-				return ran3(&seed);	//return a random alpha
+				return alph;
+//				return ran3(&seed);	//return a random alpha
 			}
 			else
 			{
