@@ -63,7 +63,23 @@ printf("--------------------\n\n");
 //----------------Argument info-------------------------
 if(argv[1] == 0)
 {
-	printf("--------Help-------\n Argument Info:\n	1. Mode\n		0: Testmode\n		1: mean square distance 1D\n		2:clustersizedistribution 1D\n		3: equilibration time 1D\n		4: visual 2D lattice output\n		5: clustersizedistribution 2D\n		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n		7:equilibration time 2D\n	2. Clustersize N (NxN in 2D)\n	3. alph\n	4. phi\n	5. initial time T\n	6. aditional name ([Name]_[aditional Name])\n");
+	printf("--------Help-------\n\
+ Argument Info:\n\
+	1. Mode\n\
+		0: Testmode\n\
+		1: mean square distance 1D\n\
+		2:clustersizedistribution 1D\n\
+		3: equilibration time 1D\n\
+		4: visual 2D lattice output\n\
+		5: clustersizedistribution 2D\n\
+		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n\
+		7:equilibration time 2D\n\
+	2. Clustersize N (NxN in 2D)\n\
+	3. alph\n\
+	4. phi\n\
+	5. initial time T\n\
+	6. aditional name ([Name]_[aditional Name])\n\
+	7. Tau (rate of changing alpha when trapped)\n");
 	exit(0);
 }
 
@@ -81,7 +97,6 @@ int * r_lattice;
 double m_d;
 int ** matrix;
 double Lc;
-double tau=1000;
 
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
@@ -101,13 +116,14 @@ scanf("\n%d",&tottime);
 
 	FILE *f;		//create file pointer		
 
+	double tau=atof(argv[7]);
 	N = atoi(argv[2]);
 	int m=N;
 	alph =atof(argv[3]);	//convert to double	
 	phi = atof(argv[4]);	//convert to double
 	int T = atoi(argv[5]);	//convert to int
 	char output[100];
-	sprintf(output,"Data_N=%d_alph=%1.3lf_phi=%1.3lf_T=%d_%s",N,alph,phi,T,argv[6]);
+	sprintf(output,"Data_N=%d_alph=%1.3lf_phi=%1.3lf_T=%d_Tau=%1.3lf_%s",N,alph,phi,T,tau,argv[6]);
 //	printf("%s\n",output);
 //	printf("mode: %d\nN=%d\nalph=%.3f\nphi=%.3f\n",mode,N,alph,phi);
 	tottime=T;
@@ -450,10 +466,11 @@ scanf("\n%d",&tottime);
 	case 7: 	//calculating equilibration time 2D (output average cluster size Lc over #timesteps T)
 		printf("mode 7\n");	
 		f = fopen(output,"w"); //open file stream
-		fprintf(f,"T	Lc\n");
+		fprintf(f,"T	Lc	<alph>\n");
 		lattice = init_lat_2_2D(N*N,M_2D,phi,alph,tau);		//initialize lattice
 		int clusters_2;
 		double ti_2;
+		double mean_alph;
 		int stepsize_2=1;
 		for(i=stepsize_2;i<=T;i+=stepsize_2)
 		{
@@ -465,6 +482,16 @@ scanf("\n%d",&tottime);
 			matrix=transform_2d(lattice,M_2D,N,N);		//create hk matrix
 			clusters_2 = hoshen_kopelman(matrix,N,N);		//calculate number of clusters
 		//	printf("clusters: %d\n",clusters_2);
+
+			//--measuere mean tumbling rate---
+			mean_alph=0;
+			for(ii=0;ii<M_2D;ii++)
+			{
+				mean_alph+=lattice[ii].alph;
+			}
+			mean_alph=mean_alph/(double)(M_2D);
+			//-----------------------
+
 			for(ii=0;ii<m;ii++)
 			{
 				free(matrix[ii]);
@@ -472,7 +499,7 @@ scanf("\n%d",&tottime);
 			free(matrix);					//give space of matrix free (or I get a space problem)
 			Lc=(double)M_2D/(double)clusters_2;			//calculate mean cluster size
 //			ti=(double)i/(double)T;
-			fprintf(f,"%d	%lf	%d\n",i,Lc,clusters_2);			//write data to file
+			fprintf(f,"%d	%lf	%lf\n",i,Lc,mean_alph);			//write data to file
 		}
 		fclose(f);	//close data stream
 		break;
