@@ -38,6 +38,8 @@ struct particle * init_lat_2_2D(int N,int M,double phi,double alph,double tau);
 int * get_index_2D(int ind,int N);
 void waitFor (double secs);
 double alph_change(double alph, double traptime,double tau);
+int * cluster_counting(int ** matrix,int * numofclusters,int clusters,int N,int m);
+int max_clustersize(int * numofclusters,int M);
 //----------------Structures----------------------
 struct particle
 {
@@ -166,86 +168,44 @@ scanf("\n%d",&tottime);
 		
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"l	Fc\n");
-		double *Fc;
+		double * Fc;
 		Fc=(double *)calloc(M,sizeof(double));
-		int *numofclusters;
-		numofclusters=(int *)calloc(M,sizeof(int));
-		int max_l=0;
-		int iter=1000;
-		lattice = init_lat_2(N,M,phi,alph,tau);
-		for(i=0;i<T;i++)		//equilibration
-		{
-			lattice=timestep_2(lattice,N,M,alph);
-	//		printf("i: %d\n",i);
-		}
+			
+		int * numofclusters = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+		int max_l;
+		int iter=1;
+	
 		for(ii=0;ii<iter;ii++)
 		{
-		//	printf("ii: %d\n",ii);
-			for(i=0;i<100;i++)
+			lattice = init_lat_2(N,M,phi,alph,tau);
+			for(i=0;i<T;i++)		//equilibration
 			{
 				lattice=timestep_2(lattice,N,M,alph);
-			}
+		//		printf("i: %d\n",i);
+			}	//	printf("ii: %d\n",ii);
+	//		for(i=0;i<100;i++)
+	//		{
+	//			lattice=timestep_2(lattice,N,M,alph);
+	//		}
 			matrix=transform_2d(lattice,M,1,N);
 			int clusters = hoshen_kopelman(matrix,1,N);
 		//	printf("clusters: %d\n",clusters);
 			int ccount=0;
 			int size=1;
-			for(i=0;i<M;i++)
-			{
-				numofclusters[i]=0;
-			}
-			for(i=0;i<=N;i++)	//count the number of clusters of a specific size and write them into an array --> array[clustersize]=number of clusters with size clustersize
-			{
-				if(i==N)   //if the last site has been exeded
-				{
-					if(ccount==0)	//and there was no particle before
-					{
-						continue;	//do nothing
-					}
-					else 	//if there was one add one to the counter of its size
-					{
-						numofclusters[ccount]+=1;
-						if(max_l<ccount)
-						{
-							max_l=ccount;
-						}	 
-						ccount=0;	//reset the counter
-					}
-					break;
-				}
-				if(matrix[0][i]==0) 	//if there is no particle
-				{
-					if(ccount==0)	//and there was no particle before
-					{
-						continue;	//do nothing
-					}
-					else 	//if there was one add one to the counter of its size
-					{
-						numofclusters[ccount]+=1;	 
-						if(max_l<ccount)
-						{
-							max_l=ccount;
-						}	 
-						ccount=0;	//reset the counter
-					}
-				}
-				else
-				{
-					ccount+=1;
-				}
-			}
-//			printf("max_l: %d\n",max_l);
-			for(i=2;i<=max_l;i++)
-			{	
-				Fc[i]+=(double)numofclusters[i];
-	//			Fc[i]=(double)numofclusters[i]/((double)M);
-	//			fprintf(f,"%d	%lf\n",i,Fc[i]);
-			}
+			numofclusters=cluster_counting(matrix,numofclusters,clusters,N,1);
+			max_l=max_clustersize(numofclusters,M);
+			
+
 		}
-		for(i=2;i<=max_l;i++)
+
+		printf("max_l: %d\n",max_l);
+		for(i=2;i<max_l;i++)
 		{
-			Fc[i]=Fc[i]/((double)M*(double)iter);
-			fprintf(f,"%d	%lf\n",i,Fc[i]);
+			Fc[i]=(double)numofclusters[i]/((double)M*(double)iter);
+			if (Fc[i]!=0)
+			{
+				fprintf(f,"%d	%1.10lf\n",i,Fc[i]);
+			}
 		}
 		fclose(f);
 	//	double l_m=(double)M/(double)clusters;	//mean cluster size (l_m)
@@ -270,13 +230,13 @@ scanf("\n%d",&tottime);
 			{
 				lattice=timestep_2(lattice,N,M,alph);		//make one timestep
 			}
-			matrix=transform_2d(lattice,M,m,N);		//create hk matrix
+			matrix=transform_2d(lattice,M,1,N);		//create hk matrix
 			clusters = hoshen_kopelman(matrix,m,N);		//calculate number of clusters
 		//	printf("clusters: %d\n", clusters);
 			
 			//--measuere mean tumbling rate---
 			mean_alph=0;
-			for(ii=0;ii<M_2D;ii++)
+			for(ii=0;ii<M;ii++)
 			{
 				mean_alph+=lattice[ii].alph;
 			}
@@ -344,59 +304,45 @@ scanf("\n%d",&tottime);
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
-		lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
-		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
-		{
-			lattice=timestep_2_2D(lattice,N,N,M,alph);
-//			printf("i: %d\n",i);
-		}
+		
+
+	
+		
+
 		int T_step=100;
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
+
+		int max_A;
+		
 		for(n=0;n<numofmeasure;n++)
 		{
 //			printf("n: %d",n);
-			for(i=0;i<T_step;i++)	//do T_step timesteps
+			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
+			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 			{
 				lattice=timestep_2_2D(lattice,N,N,M,alph);
+	//			printf("i: %d\n",i);
 			}
+		//	for(i=0;i<T_step;i++)	//do T_step timesteps
+		//	{
+		//		lattice=timestep_2_2D(lattice,N,N,M,alph);
+		//	}
 			matrix=transform_2d(lattice,M,N,N);
 //			print_matrix(matrix,N,N);
 			clusters = hoshen_kopelman(matrix,N,N);
-			//-----cluster counting--------
-			for(ccount=1;ccount<=clusters;ccount++)
-			{
-				clsize=0;
-				for(i=0;i<N;i++)	//search in whole matrix
-				{
-					for(ii=0;ii<N/*or m if the matrix is not quadratic*/; ii++)
-					{
-						if(matrix[i][ii]==ccount)
-						{
-							clsize+=1;
-						}
-					}
-				}
-				numofclusters_2D[clsize]+=1;
-			}
-//			free(lattice);
+			numofclusters_2D=cluster_counting(matrix,numofclusters_2D,clusters,N,N);
+			max_A=max_clustersize(numofclusters,M);
+		
 		}
-		int max_A; 	//maximal cluster size
-		for(i=1;i<M;i++)
-		{
-			if(numofclusters_2D[i]!=0)
-			{
-				max_A=i;
-			}
-		}
-//		printf("max_A = %d\n",max_A);
+
 		double Fc_2D;
 		for(i=1;i<=max_A;i++)
 		{
 			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalisation of Fc
 			if(Fc_2D!=0)
 			{
-				fprintf(f,"%d	%lf\n",i,Fc_2D);
+				fprintf(f,"%d	%1.10lf\n",i,Fc_2D);
 			}
 		}
 		fclose(f);
@@ -433,6 +379,8 @@ scanf("\n%d",&tottime);
 				}
 				matrix=transform_2d(lattice,M,1,N);
 				int clusters = hoshen_kopelman(matrix,1,N);
+
+
 /*				int count;
 				int M_in_c=M;		//# particles in clusters
 				int real_clusters=clusters;
@@ -1383,4 +1331,47 @@ double alph_change(double alph, double traptime,double tau)
 			}
 			break;
 	}
+}
+//-----cluster counting--------
+//input: matrix, clusters (number of clusters, N, m
+//output: pointer numofclusters (numofclusters[1] is the number of clusters with size 1)
+int * cluster_counting(int ** matrix,int * numofclusters,int clusters,int N,int m)
+{
+	int ccount;
+	int i=0;
+	int j=0;
+	int clsize;
+	for(ccount=1;ccount<=clusters;ccount++)
+	{
+		clsize=0;
+		for(i=0;i<N;i++)	//search in whole matrix
+		{
+			for(j=0;j<m; j++)
+			{
+				if(matrix[j][i]==ccount)
+				{
+					clsize+=1;
+				}
+			}
+	
+		}
+		numofclusters[clsize]+=1;
+	}
+	return numofclusters;
+}
+//----------maximal clustesize---------------
+//input: pointer numberofclusters, M (number of particles)
+//output: max_A (maximal clustersize) 
+int max_clustersize(int * numofclusters,int M)
+{
+	int max_A; 	//maximal cluster size
+	int i=0;
+	for(i=1;i<M;i++)
+	{
+		if(numofclusters[i]!=0)
+		{
+			max_A=i;
+		}
+	}
+	return max_A;
 }
