@@ -344,22 +344,24 @@ scanf("\n%d",&tottime);
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
-			
+		lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
+		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
+		{
+			lattice=timestep_2_2D(lattice,N,N,M,alph);
+//			printf("i: %d\n",i);
+		}
 		int T_step=100;
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 		for(n=0;n<numofmeasure;n++)
 		{
-			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
-			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
+//			printf("n: %d",n);
+			for(i=0;i<T_step;i++)	//do T_step timesteps
 			{
 				lattice=timestep_2_2D(lattice,N,N,M,alph);
 			}
-	//		for(i=0;i<T_step;i++)	//do T_step timesteps
-	//		{
-	//			lattice=timestep_2_2D(lattice,N,N,M,alph);
-	//		}
 			matrix=transform_2d(lattice,M,N,N);
+//			print_matrix(matrix,N,N);
 			clusters = hoshen_kopelman(matrix,N,N);
 			//-----cluster counting--------
 			for(ccount=1;ccount<=clusters;ccount++)
