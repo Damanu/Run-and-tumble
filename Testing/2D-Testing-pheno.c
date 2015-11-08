@@ -97,6 +97,7 @@ int * r_lattice;
 double m_d;
 int ** matrix;
 double Lc;
+double mean_alph;
 
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
@@ -255,13 +256,12 @@ scanf("\n%d",&tottime);
 		
 		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
 		f = fopen(output,"w"); //open file stream
-		fprintf(f,"T	Lc\n");
+		fprintf(f,"T	Lc	<alph>\n");
 		lattice = init_lat_2(N,M,phi,alph,tau);		//initialize lattice
-//		T=1000000;
 		m=1;
 		int clusters;
 		double ti;
-		int stepsize=100;
+		int stepsize=10;
 		for(i=stepsize;i<=T;i+=stepsize)
 //>>>>>>> 6b0390817e69264e7757c8e463f1fcde443336d4
 		{
@@ -273,6 +273,16 @@ scanf("\n%d",&tottime);
 			matrix=transform_2d(lattice,M,m,N);		//create hk matrix
 			clusters = hoshen_kopelman(matrix,m,N);		//calculate number of clusters
 		//	printf("clusters: %d\n", clusters);
+			
+			//--measuere mean tumbling rate---
+			mean_alph=0;
+			for(ii=0;ii<M_2D;ii++)
+			{
+				mean_alph+=lattice[ii].alph;
+			}
+			mean_alph=mean_alph/(double)(M);
+			//-----------------------
+
 			for(ii=0;ii<m;ii++)
 			{
 				free(matrix[ii]);
@@ -281,7 +291,7 @@ scanf("\n%d",&tottime);
 			Lc=(double)M/(double)clusters;			//calculate mean cluster size
 		//	printf("Lc: %lf\n",Lc);
 //			ti=(double)i/(double)T;
-			fprintf(f,"%d	%lf\n",i,Lc);			//write data to file
+			fprintf(f,"%d	%lf	%lf\n",i,Lc,mean_alph);			//write data to file
 		}
 		fclose(f);	//close data stream
 		break;
@@ -334,24 +344,22 @@ scanf("\n%d",&tottime);
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
-		lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
-		for(i=0;i<T;i++)	//do T timesteps to get equilibrium
-		{
-			lattice=timestep_2_2D(lattice,N,N,M,alph);
-//			printf("i: %d\n",i);
-		}
+			
 		int T_step=100;
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 		for(n=0;n<numofmeasure;n++)
 		{
-//			printf("n: %d",n);
-			for(i=0;i<T_step;i++)	//do T_step timesteps
+			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
+			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 			{
 				lattice=timestep_2_2D(lattice,N,N,M,alph);
 			}
+	//		for(i=0;i<T_step;i++)	//do T_step timesteps
+	//		{
+	//			lattice=timestep_2_2D(lattice,N,N,M,alph);
+	//		}
 			matrix=transform_2d(lattice,M,N,N);
-//			print_matrix(matrix,N,N);
 			clusters = hoshen_kopelman(matrix,N,N);
 			//-----cluster counting--------
 			for(ccount=1;ccount<=clusters;ccount++)
@@ -383,7 +391,7 @@ scanf("\n%d",&tottime);
 		double Fc_2D;
 		for(i=1;i<=max_A;i++)
 		{
-			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalization of Fc
+			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalisation of Fc
 			if(Fc_2D!=0)
 			{
 				fprintf(f,"%d	%lf\n",i,Fc_2D);
@@ -470,7 +478,6 @@ scanf("\n%d",&tottime);
 		lattice = init_lat_2_2D(N*N,M_2D,phi,alph,tau);		//initialize lattice
 		int clusters_2;
 		double ti_2;
-		double mean_alph;
 		int stepsize_2=1;
 		for(i=stepsize_2;i<=T;i+=stepsize_2)
 		{
@@ -1365,8 +1372,8 @@ double alph_change(double alph, double traptime,double tau)
 		case 1: //random alpha change with prob poisson
 			if (rndnum > exp(-traptime/tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
-				return alph;
-//				return ran3(&seed);	//return a random alpha
+//				return alph;
+				return ran3(&seed);	//return a random alpha
 			}
 			else
 			{
