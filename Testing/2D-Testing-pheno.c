@@ -194,8 +194,13 @@ scanf("\n%d",&tottime);
 			int size=1;
 			numofclusters=cluster_counting(matrix,numofclusters,clusters,N,1);
 			max_l=max_clustersize(numofclusters,M);
-			
-
+			free(lattice);	
+			for(ii=0;ii<m;ii++)
+			{
+				free(matrix[ii]);
+			}
+			free(matrix);					//give space of matrix free (or I get a space problem)
+	
 		}
 
 		printf("max_l: %d\n",max_l);
@@ -304,7 +309,6 @@ scanf("\n%d",&tottime);
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int n,numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
-		
 
 	
 		
@@ -317,7 +321,8 @@ scanf("\n%d",&tottime);
 		
 		for(n=0;n<numofmeasure;n++)
 		{
-//			printf("n: %d",n);
+			
+			printf("n: %d",n);
 			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
 			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 			{
@@ -333,7 +338,13 @@ scanf("\n%d",&tottime);
 			clusters = hoshen_kopelman(matrix,N,N);
 			numofclusters_2D=cluster_counting(matrix,numofclusters_2D,clusters,N,N);
 			max_A=max_clustersize(numofclusters,M);
-		
+			free(lattice);
+			for(ii=0;ii<N;ii++)	//Problem ist wsl hier irgendwo !!!!!!!!!!!!!
+			{
+				free(matrix[ii]);
+			}
+			free(matrix);					//give space of matrix free (or I get a space problem)
+	
 		}
 
 		double Fc_2D;
@@ -417,6 +428,10 @@ scanf("\n%d",&tottime);
 					fprintf(f,"%lf	%lf	%lf	%lf\n",lc,Lc,phi,alph);
 				}
 				free(lattice);
+				for(ii=0;ii<m;ii++)
+				{
+					free(matrix[ii]);
+				}
 				free(matrix);
 			}
 	//	}
