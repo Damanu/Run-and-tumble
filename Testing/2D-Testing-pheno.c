@@ -71,12 +71,14 @@ if(argv[1] == 0)
 	1. Mode\n\
 		0: Testmode\n\
 		1: mean square distance 1D\n\
-		2:clustersizedistribution 1D\n\
+		2: clustersizedistribution 1D\n\
 		3: equilibration time 1D\n\
 		4: visual 2D lattice output\n\
 		5: clustersizedistribution 2D\n\
 		6: data collapse plot 1D Lc over lc(other parameters are irrelevant, set 0!)\n\
-		7:equilibration time 2D\n\
+		7: equilibration time 2D\n\
+		8: stoppingtimedistribution 2D  (S over stoptime)\n\
+		9: stoppingtimedistribution 1D  (S over stoptime)\n\
 	2. Clustersize N (NxN in 2D)\n\
 	3. alph\n\
 	4. phi\n\
@@ -103,7 +105,9 @@ double Lc;
 double mean_alph;
 double meantraptime;
 int n,numofmeasure;		//n ,number of measurements
-int T_step;
+int T_step; 
+int * S;
+double Si;
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
 scanf("\n%d", &N);			//get number of sites
@@ -314,7 +318,7 @@ scanf("\n%d",&tottime);
 		}
 		fclose(f);
 		break;
-	case 5:		//clustercounting to get clustersize distribution and stoppingtimedistribution (S over stoptime)
+	case 5:		//clustercounting to get clustersize distribution
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
@@ -330,11 +334,9 @@ scanf("\n%d",&tottime);
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 
 		int max_A;
-		
 		for(n=0;n<numofmeasure;n++)
 		{
 			
-			printf("n: %d",n);
 			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
 			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
 			{
@@ -349,10 +351,10 @@ scanf("\n%d",&tottime);
 //			print_matrix(matrix,N,N);
 			clusters = hoshen_kopelman(matrix,N,N);
 			numofclusters_2D=cluster_counting(matrix,numofclusters_2D,clusters,N,N);
-			max_A=max_clustersize(numofclusters,M);
+			max_A=max_clustersize(numofclusters_2D,M);
 			free(lattice);
-			for(ii=0;ii<N;ii++)	//Problem ist wsl hier irgendwo !!!!!!!!!!!!!
-			{
+			for(ii=0;ii<N;ii++)	
+			{	
 				free(matrix[ii]);
 			}
 			free(matrix);					//give space of matrix free (or I get a space problem)
@@ -498,14 +500,13 @@ scanf("\n%d",&tottime);
 		fclose(f);	//close data stream
 		break;
 	
-	case 8:		//stoppingtimedistribution (S over stoptime)
+	case 8:		//stoppingtimedistribution 2D  (S over stoptime)
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
 		numofmeasure=1000;		//n ,number of measurements
-		int * S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+		S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 
-		double Si;
 		
 		T_step=100;
 		f = fopen(output,"w"); //open file stream
@@ -528,11 +529,6 @@ scanf("\n%d",&tottime);
 //			print_matrix(matrix,N,N);
 			S=stopping_time(lattice, S, M);
 			free(lattice);
-			for(ii=0;ii<N;ii++)	//Problem ist wsl hier irgendwo !!!!!!!!!!!!!
-			{
-				free(matrix[ii]);
-			}
-			free(matrix);					//give space of matrix free (or I get a space problem)
 	
 		}
 		for(i=1;i<T;i++)
@@ -540,13 +536,57 @@ scanf("\n%d",&tottime);
 			Si=((double)S[i])/(((double)M)*((double)numofmeasure));
 			if(Si!=0 )
 			{
-				fprintf(f,"%d	%lf\n",i,Si);
+				fprintf(f,"%d	%1.10lf\n",i,Si);
+			}
+		}
+		free(S);
+		fclose(f);
+		break;
+	case 9:		//stoppingtimedistribution 1D  (S over stoptime)
+		printf("mode: %d\n",mode);
+		M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+		M=roundf(M_);
+		numofmeasure=1;		//n ,number of measurements
+		S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+
+		
+		T_step=10;
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"t	S\n"); 		//A is the clustersize and Fc the distribution of it
+
+		
+		for(n=0;n<numofmeasure;n++)
+		{
+			
+			lattice=init_lat_2(N,M,phi,alph,tau);	//initialize 2D lattice
+			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
+			{
+				lattice=timestep_2(lattice,N,M,alph);
+	//			printf("i: %d\n",i);
+			}
+		//	for(i=0;i<T_step;i++)	//do T_step timesteps
+		//	{
+		//		lattice=timestep_2_2D(lattice,N,N,M,alph);
+		//	}
+//			print_matrix(matrix,N,N);
+			S=stopping_time(lattice, S, M);
+			free(lattice);
+	
+		}
+		for(i=1;i<T;i++)
+		{
+			Si=((double)S[i])/(((double)M)*((double)numofmeasure));
+			if(Si!=0 )
+			{
+				fprintf(f,"%d	%1.10lf\n",i,Si);
 			}
 		}
 		free(S);
 		fclose(f);
 		break;
 	}	
+
+	
 
 /*
 	printf("M: %d\n",M);
