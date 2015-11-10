@@ -40,6 +40,7 @@ void waitFor (double secs);
 double alph_change(double alph, double traptime,double tau);
 int * cluster_counting(int ** matrix,int * numofclusters,int clusters,int N,int m);
 int max_clustersize(int * numofclusters,int M);
+int * stopping_time(struct particle * lattice,int * S,int M);
 //----------------Structures----------------------
 struct particle
 {
@@ -100,7 +101,9 @@ double m_d;
 int ** matrix;
 double Lc;
 double mean_alph;
-
+double meantraptime;
+int n,numofmeasure;		//n ,number of measurements
+int T_step;
 //----------------------------Manual input-------------------------------
 /*	printf("Number of sites (N): ");
 scanf("\n%d", &N);			//get number of sites
@@ -245,8 +248,18 @@ scanf("\n%d",&tottime);
 			{
 				mean_alph+=lattice[ii].alph;
 			}
-			mean_alph=mean_alph/(double)(M);
+			mean_alph = mean_alph/((double)M);
 			//-----------------------
+-
+			//--------measure mean trap time-----------------
+			
+			meantraptime;
+			for(ii=0;ii<M;ii++)
+			{
+				meantraptime+=lattice[ii].traptime;
+			}			
+			meantraptime=meantraptime/((double)M);
+			//-----------------------------------------------
 
 			for(ii=0;ii<m;ii++)
 			{
@@ -256,7 +269,7 @@ scanf("\n%d",&tottime);
 			Lc=(double)M/(double)clusters;			//calculate mean cluster size
 		//	printf("Lc: %lf\n",Lc);
 //			ti=(double)i/(double)T;
-			fprintf(f,"%d	%lf	%lf\n",i,Lc,mean_alph);			//write data to file
+			fprintf(f,"%d	%lf	%lf	%lf\n",i,Lc,mean_alph,meantraptime);			//write data to file
 		}
 		fclose(f);	//close data stream
 		break;
@@ -301,19 +314,18 @@ scanf("\n%d",&tottime);
 		}
 		fclose(f);
 		break;
-	case 5:		//clustercounting to get clustersize distribution
+	case 5:		//clustercounting to get clustersize distribution and stoppingtimedistribution (S over stoptime)
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
 		int ccount,clsize=0;	//ccount is the number of the cluster looked at, clsize is the size of that cluster
 		int * numofclusters_2D = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
-		int n,numofmeasure=1000;		//n ,number of measurements
+		numofmeasure=1000;		//n ,number of measurements
 //		printf("number of iterations: %d",numofmeasure);
 
 	
 		
-
-		int T_step=100;
+		T_step=100;
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"A	Fc\n"); 		//A is the clustersize and Fc the distribution of it
 
@@ -346,12 +358,14 @@ scanf("\n%d",&tottime);
 			free(matrix);					//give space of matrix free (or I get a space problem)
 	
 		}
+			
+
 
 		double Fc_2D;
 		for(i=1;i<=max_A;i++)
 		{
 			Fc_2D=(double)numofclusters_2D[i]/(((double)M)*(double)numofmeasure);		//normalisation of Fc
-			if(Fc_2D!=0)
+			if(Fc_2D!=0 )
 			{
 				fprintf(f,"%d	%1.10lf\n",i,Fc_2D);
 			}
@@ -436,7 +450,8 @@ scanf("\n%d",&tottime);
 			}
 	//	}
 		break;	
-	case 7: 	//calculating equilibration time 2D (output average cluster size Lc over #timesteps T)
+	case 7: 	//calculating equilibration time 2D (output average cluster size Lc over #timesteps T), and get mean trapping time
+
 		printf("mode 7\n");	
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"T	Lc	<alph>\n");
@@ -461,9 +476,16 @@ scanf("\n%d",&tottime);
 			{
 				mean_alph+=lattice[ii].alph;
 			}
-			mean_alph=mean_alph/(double)(M_2D);
+			mean_alph=mean_alph/(double)M_2D;
 			//-----------------------
-
+			//--------measure mean trap time-----------------
+			meantraptime=0;
+			for(ii=0;ii<M_2D;ii++)
+			{
+				meantraptime+=lattice[ii].traptime;
+			}			
+			meantraptime=meantraptime/(double)M_2D;
+			//-----------------------------------------------
 			for(ii=0;ii<m;ii++)
 			{
 				free(matrix[ii]);
@@ -471,11 +493,60 @@ scanf("\n%d",&tottime);
 			free(matrix);					//give space of matrix free (or I get a space problem)
 			Lc=(double)M_2D/(double)clusters_2;			//calculate mean cluster size
 //			ti=(double)i/(double)T;
-			fprintf(f,"%d	%lf	%lf\n",i,Lc,mean_alph);			//write data to file
+			fprintf(f,"%d	%lf	%lf	%lf\n",i,Lc,mean_alph,meantraptime);			//write data to file
 		}
 		fclose(f);	//close data stream
 		break;
-	}
+	
+	case 8:		//stoppingtimedistribution (S over stoptime)
+		printf("mode: %d\n",mode);
+		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
+		M=roundf(M_);
+		numofmeasure=1000;		//n ,number of measurements
+		int * S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+
+		double Si;
+		
+		T_step=100;
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"t	S\n"); 		//A is the clustersize and Fc the distribution of it
+
+		
+		for(n=0;n<numofmeasure;n++)
+		{
+			
+			lattice=init_lat_2_2D(N*N,M,phi,alph,tau);	//initialize 2D lattice
+			for(i=0;i<T;i++)	//do T timesteps to get equilibrium
+			{
+				lattice=timestep_2_2D(lattice,N,N,M,alph);
+	//			printf("i: %d\n",i);
+			}
+		//	for(i=0;i<T_step;i++)	//do T_step timesteps
+		//	{
+		//		lattice=timestep_2_2D(lattice,N,N,M,alph);
+		//	}
+//			print_matrix(matrix,N,N);
+			S=stopping_time(lattice, S, M);
+			free(lattice);
+			for(ii=0;ii<N;ii++)	//Problem ist wsl hier irgendwo !!!!!!!!!!!!!
+			{
+				free(matrix[ii]);
+			}
+			free(matrix);					//give space of matrix free (or I get a space problem)
+	
+		}
+		for(i=1;i<T;i++)
+		{
+			Si=((double)S[i])/(((double)M)*((double)numofmeasure));
+			if(Si!=0 )
+			{
+				fprintf(f,"%d	%lf\n",i,Si);
+			}
+		}
+		free(S);
+		fclose(f);
+		break;
+	}	
 
 /*
 	printf("M: %d\n",M);
@@ -1390,3 +1461,21 @@ int max_clustersize(int * numofclusters,int M)
 	}
 	return max_A;
 }
+//------------Stopping_time-------------
+//input: lattice, M (number of Particles), S (stoppingtime distribution allocated memory)
+//out: Stoppingtime distribution (number of particles with stoppingtime)
+int * stopping_time(struct particle * lattice,int * S,int M)
+{
+	int i;
+	int ind;
+	for(i=0;i<M;i++)
+	{
+		ind=lattice[i].traptime;
+		S[ind]+=1;
+	}
+	return S;
+}
+
+
+
+
