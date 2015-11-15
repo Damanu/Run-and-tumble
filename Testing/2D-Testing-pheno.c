@@ -172,15 +172,14 @@ scanf("\n%d",&tottime);
 		fclose(f);
 		break;
 	case 2:		//cluster-counting
-		
+		m=1;	
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"l	Fc\n");
 		double * Fc;
 		Fc=(double *)calloc(M,sizeof(double));
-			
 		int * numofclusters = (int *)calloc(M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 		int max_l;
-		int iter=1;
+		int iter=1000;
 	
 		for(ii=0;ii<iter;ii++)
 		{
@@ -200,13 +199,13 @@ scanf("\n%d",&tottime);
 			int ccount=0;
 			int size=1;
 			numofclusters=cluster_counting(matrix,numofclusters,clusters,N,1);
-			max_l=max_clustersize(numofclusters,M);
-			free(lattice);	
-			for(ii=0;ii<m;ii++)
+			max_l=max_clustersize(numofclusters,M);			
+			for(i=0;i<m;i++)
 			{
-				free(matrix[ii]);
+				free(matrix[i]);
 			}
 			free(matrix);					//give space of matrix free (or I get a space problem)
+			free(lattice);	
 	
 		}
 
