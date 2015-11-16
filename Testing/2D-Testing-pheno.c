@@ -56,7 +56,7 @@ double tau;		//rat with which the particle changes alpha (if trapped)
 };
 
 //-------------Global Variables--------------
-int ALPH_CHANGE_TYPE=1;
+int ALPH_CHANGE_TYPE=3;
 //--------------Main Program---------------------
 int main(int argc, char *argv[]) 
 {
@@ -1442,12 +1442,12 @@ double alph_change(double alph, double traptime,double tau)
 {
 	long seed = time(NULL);
 	double rndnum = ran3(&seed);
+	double p=0.05;
 	switch(ALPH_CHANGE_TYPE)
 	{
 		case 1: //random alpha change with prob poisson
-			if (rndnum > exp(-traptime/tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
+			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
-//				return alph;
 				return ran3(&seed);	//return a random alpha
 			}
 			else
@@ -1455,6 +1455,29 @@ double alph_change(double alph, double traptime,double tau)
 				return alph;		//return alpha like it was
 			}
 			break;
+		case 2: 
+			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
+			{
+				return (alph*(1-p)); //alpha goes exponentially to 0
+			}
+			else
+			{
+				return alph;		//return alpha like it was
+			}
+
+			break;
+		case 3: 
+			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
+			{
+				return (alph+(1.-alph)*p); //alpha goes exponentially to 1
+			}
+			else
+			{
+				return alph;		//return alpha like it was
+			}
+
+			break;
+
 	}
 }
 //-----cluster counting--------
