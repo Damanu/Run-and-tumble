@@ -56,7 +56,7 @@ double tau;		//rat with which the particle changes alpha (if trapped)
 };
 
 //-------------Global Variables--------------
-int ALPH_CHANGE_TYPE=3;
+int ALPH_CHANGE_TYPE=1;
 //--------------Main Program---------------------
 int main(int argc, char *argv[]) 
 {
@@ -79,6 +79,8 @@ if(argv[1] == 0)
 		7: equilibration time 2D\n\
 		8: stoppingtimedistribution 2D  (S over stoptime)\n\
 		9: stoppingtimedistribution 1D  (S over stoptime)\n\
+		10: mean stopping time over alpha 2D\n\
+		11: mean stopping time over alpha 1D\n\
 	2. Clustersize N (NxN in 2D)\n\
 	3. alph\n\
 	4. phi\n\
@@ -227,7 +229,7 @@ scanf("\n%d",&tottime);
 		
 		//f = fopen("data_Equilibrationtime.txt","w"); //open file stream
 		f = fopen(output,"w"); //open file stream
-		fprintf(f,"T	Lc	<alph>\n");
+		fprintf(f,"T	Lc	<alph>	<t_trap>\n");
 		lattice = init_lat_2(N,M,phi,alph,tau);		//initialize lattice
 		m=1;
 		int clusters;
@@ -503,14 +505,15 @@ scanf("\n%d",&tottime);
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
-		numofmeasure=1000;		//n ,number of measurements
-		S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+		numofmeasure=100;		//n ,number of measurements
+		S= (int *)calloc(T*M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 
 		
 		T_step=100;
 		f = fopen(output,"w"); //open file stream
 		fprintf(f,"t	S\n"); 		//A is the clustersize and Fc the distribution of it
 
+		mean_alph=0;
 		
 		for(n=0;n<numofmeasure;n++)
 		{
@@ -526,11 +529,20 @@ scanf("\n%d",&tottime);
 		//		lattice=timestep_2_2D(lattice,N,N,M,alph);
 		//	}
 //			print_matrix(matrix,N,N);
-			S=stopping_time(lattice, S, M);
+			//--measuere mean tumbling rate---
+	//		for(ii=0;ii<M;ii++)
+	//		{
+	//			mean_alph+=lattice[ii].alph;
+	//		}
+			//-----------------------
+	
+			S=stopping_time(lattice,S,M);
 			free(lattice);
 	
 		}
-		for(i=1;i<T;i++)
+	//	mean_alph=mean_alph/((double)M*numofmeasure);
+		printf("mean_alph: %lf\n",mean_alph);
+		for(i=1;i<T*M;i++)
 		{
 			Si=((double)S[i])/(((double)M)*((double)numofmeasure));
 			if(Si!=0 )
@@ -545,8 +557,8 @@ scanf("\n%d",&tottime);
 		printf("mode: %d\n",mode);
 		M_ =(float)(N)*phi;	//M (number of Particles) --> if N*phi >= n.5 (with n natrual number) there is an error. This error is negligible for big N
 		M=roundf(M_);
-		numofmeasure=1;		//n ,number of measurements
-		S= (int *)calloc(T,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
+		numofmeasure=100;		//n ,number of measurements
+		S= (int *)calloc(T*M,sizeof(int));	//the index stands for the clustersize and the number of Numofclusters[index] stands for the number of clusters with that size
 
 		
 		T_step=10;
@@ -572,7 +584,7 @@ scanf("\n%d",&tottime);
 			free(lattice);
 	
 		}
-		for(i=1;i<T;i++)
+		for(i=1;i<T*M;i++)
 		{
 			Si=((double)S[i])/(((double)M)*((double)numofmeasure));
 			if(Si!=0 )
@@ -583,6 +595,85 @@ scanf("\n%d",&tottime);
 		free(S);
 		fclose(f);
 		break;
+	case 10: 	//mean stopping time over alpha
+
+		printf("mode 10\n");	
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"alpha	T_stop\n");
+		numofmeasure=100;
+		for(alph=0.001;alph<1;alph*=1.2)
+		{
+			mean_alph=0;
+			meantraptime=0;
+			for(i=0;i<=numofmeasure;i+=1)
+			{
+				lattice = init_lat_2_2D(N*N,M_2D,phi,alph,tau);		//initialize lattice
+			//	printf("i: %d\n",i);
+				for(ii=0;ii<T;ii++)
+				{
+					lattice=timestep_2_2D(lattice,N,N,M_2D,alph);		//make one timestep
+				}
+				
+				//--measuere mean tumbling rate---
+				for(ii=0;ii<M_2D;ii++)
+				{
+					mean_alph+=lattice[ii].alph;
+				}
+				//-----------------------
+				//--------measure mean trap time-----------------
+				for(ii=0;ii<M_2D;ii++)
+				{
+					meantraptime+=lattice[ii].traptime;
+				}			
+				//-----------------------------------------------
+				free(lattice);
+			}
+			mean_alph=mean_alph/(numofmeasure*(double)M_2D);
+			meantraptime=meantraptime/(numofmeasure*(double)M_2D);
+			fprintf(f,"%1.10lf	%1.10lf\n",mean_alph,meantraptime);			//write data to file
+		}
+		fclose(f);	//close data stream
+		break;
+	case 11: 	//mean stopping time over alpha 1D
+
+		printf("mode 10\n");	
+		f = fopen(output,"w"); //open file stream
+		fprintf(f,"alpha	T_stop\n");
+		numofmeasure=100;
+		for(alph=0.001;alph<1;alph*=1.2)
+		{
+			mean_alph=0;
+			meantraptime=0;
+			for(i=0;i<=numofmeasure;i+=1)
+			{
+				lattice = init_lat_2(N,M,phi,alph,tau);		//initialize lattice
+			//	printf("i: %d\n",i);
+				for(ii=0;ii<T;ii++)
+				{
+					lattice=timestep_2(lattice,N,M,alph);		//make one timestep
+				}
+				
+				//--measuere mean tumbling rate---
+				for(ii=0;ii<M;ii++)
+				{
+					mean_alph+=lattice[ii].alph;
+				}
+				//-----------------------
+				//--------measure mean trap time-----------------
+				for(ii=0;ii<M;ii++)
+				{
+					meantraptime+=lattice[ii].traptime;
+				}			
+				//-----------------------------------------------
+				free(lattice);
+			}
+			mean_alph=mean_alph/(numofmeasure*(double)M);
+			meantraptime=meantraptime/(numofmeasure*(double)M);
+			fprintf(f,"%1.10lf	%1.10lf\n",mean_alph,meantraptime);			//write data to file
+		}
+		fclose(f);	//close data stream
+		break;
+	
 	}	
 
 	
@@ -1529,7 +1620,7 @@ int max_clustersize(int * numofclusters,int M)
 int * stopping_time(struct particle * lattice,int * S,int M)
 {
 	int i;
-	int ind;
+	int ind=0;
 	for(i=0;i<M;i++)
 	{
 		ind=lattice[i].traptime;
