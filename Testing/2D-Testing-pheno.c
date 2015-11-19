@@ -37,10 +37,11 @@ int rnddirection_2D();
 struct particle * init_lat_2_2D(int N,int M,double phi,double alph,double tau); 
 int * get_index_2D(int ind,int N);
 void waitFor (double secs);
-double alph_change(double alph, double traptime,double tau);
+double alph_change(struct particle * lattice,int ind,double tau);
 int * cluster_counting(int ** matrix,int * numofclusters,int clusters,int N,int m);
 int max_clustersize(int * numofclusters,int M);
 int * stopping_time(struct particle * lattice,int * S,int M);
+struct particle * timestep_2_pheno(struct particle * lattice,int N,int M, double alph);
 //----------------Structures----------------------
 struct particle
 {
@@ -152,7 +153,7 @@ scanf("\n%d",&tottime);
 		int t=0;
 		for(t=0;t<100;t++)
 		{	
-			printf("alph: %lf\n",alph_change(0.5,t,100));
+//			printf("alph: %lf\n",alph_change(0.5,t,100));
 		}
 //		f = fopen("Empty_%d+%d_alph=%f_phi=%f","w",N,N,alph,phi);
 //		fclose(f);
@@ -929,7 +930,140 @@ struct particle * timestep_2(struct particle * lattice,int N,int M, double alph)
 		ind=rand_index(M);
 		if(r_lattice[lattice[ind].ind] != 0) //if there is a particle 
 		{
-			lattice[ind].alph=alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].alph=alph_change(lattice,ind,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].dir = tumble(lattice[ind].dir,lattice[ind].alph);	//tumbling event
+			if(lattice[ind].ind == N-1) //if upper periodic boundary 
+			{
+				if(lattice[ind].dir > 0) 		//find out the direction
+				{
+					if(r_lattice[0] == 0) 	//find out if "the way if free"
+					{
+						lattice[ind].traptime=0;	//add one timeunit to the trap time
+						lattice[ind].wallcount+=1;
+						lattice[ind].ind=0; //move
+						r_lattice[0]=lattice[ind].dir; //copy to helper lattice
+						r_lattice[N-1]=0;	//clear old site
+						continue;
+					}
+
+					else		//if the way is not free
+					{
+						lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						
+					}
+				}
+				else
+				{
+					if(r_lattice[N-2] == 0)	//if the way is free
+					{
+						lattice[ind].traptime=0;	//add one timeunit to the trap time
+						lattice[ind].ind=N-2;		//move
+						r_lattice[N-2]=lattice[ind].dir;	//copy to helper lattice
+						r_lattice[N-1]=0;	//clear old site
+						continue;
+					}
+					else		//if the way is not free
+					{
+						lattice[ind].traptime+=1;	//add one timeunit to the trap time
+					}	
+				}
+			}
+			else
+			{
+				if(lattice[ind].ind == 0)	//if lower periodic boundary
+				{
+					if(lattice[ind].dir > 0) 			//find out the direction
+					{
+						if(r_lattice[1] == 0) 	//find out if "the way if free"
+						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
+							lattice[ind].ind=1;		//move
+							r_lattice[1]=lattice[ind].dir;	//copy to helper lattice
+							r_lattice[0]=0;	//clear old site
+							continue;
+						}
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+				}
+					else
+					{
+						if(r_lattice[N-1] == 0) 		//if the way if free
+						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
+							lattice[ind].ind=N-1;		//move
+							lattice[ind].wallcount-=1;
+							r_lattice[N-1]=lattice[ind].dir;	//copy to helper lattice
+							r_lattice[0]=0;		//clear old site
+							continue;
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+	
+					
+					}
+				}
+				else
+				{
+					if(lattice[ind].dir > 0) 			//find out the direction
+					{
+						if(r_lattice[lattice[ind].ind+1] == 0) 	//find out if "the way if free"
+						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
+							lattice[ind].ind+=1;		//move
+							r_lattice[lattice[ind].ind]=lattice[ind].dir;	//copy to helper lattice
+							r_lattice[lattice[ind].ind-1]=0;	//clear old site
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+
+					}
+					else	
+					{
+						if(r_lattice[lattice[ind].ind-1] == 0)		//if the way is free
+						{
+							lattice[ind].traptime=0;	//add one timeunit to the trap time
+							lattice[ind].ind-=1;		//move
+							r_lattice[lattice[ind].ind]=lattice[ind].dir;	//copy to helper lattice
+							r_lattice[lattice[ind].ind+1]=0;	//clear old site
+						}	
+						else		//if the way is not free
+						{
+							lattice[ind].traptime+=1;	//add one timeunit to the trap time
+						}
+
+					}	
+				}
+			}
+		}
+		else
+		{
+			i--;
+		}
+	}
+	free(r_lattice);
+	return lattice;
+}
+struct particle * timestep_2_pheno(struct particle * lattice,int N,int M, double alph)
+{
+//	printf("timestep start\n");
+	long seed = time(NULL);
+	int i = 0;
+	int ind;
+	int * r_lattice;
+	r_lattice=transform(lattice,M,N);
+//--this algorithm has to be optimized, there must be a shorter way--
+	for(i = 0; i < M; i++)
+	{
+		ind=rand_index(M);
+		if(r_lattice[lattice[ind].ind] != 0) //if there is a particle 
+		{
+			lattice[ind].alph=alph_change(lattice,ind,lattice[ind].tau);	//change alpha with rate tau
 			lattice[ind].dir = tumble(lattice[ind].dir,lattice[ind].alph);	//tumbling event
 			if(lattice[ind].ind == N-1) //if upper periodic boundary 
 			{
@@ -1325,7 +1459,7 @@ struct particle * timestep_2_2D(struct particle * lattice,int N,int m,int M, dou
 //		printf("\n ind: %d\n\n",ind);
 		if(r_lattice[ind2D[0],ind2D[1]] != 0) //if there is a particle 
 		{
-			lattice[ind].alph=alph_change(lattice[ind].alph,lattice[ind].traptime,lattice[ind].tau);	//change alpha with rate tau
+			lattice[ind].alph=alph_change(lattice,ind,lattice[ind].tau);	//change alpha with rate tau
 			lattice[ind].dir = tumble_2D(lattice[ind].dir,lattice[ind].alph);	//tumbling event
 			switch (lattice[ind].dir)
 			{
@@ -1529,8 +1663,10 @@ int tumble_2D(int dir,double alph)
 //--alph_change()--
 //input: typ (type of changing), alph, traptime (time a particle cant move), tau (rate of poisson distribution)
 //output: alph that may has changed according to the type of changing
-double alph_change(double alph, double traptime,double tau)
+double alph_change(struct particle * lattice,int ind,double tau)
 {
+	double alph=lattice[ind].alph;
+	int  traptime=lattice[ind].traptime;
 	long seed = time(NULL);
 	double rndnum = ran3(&seed);
 	double p=0.05;
@@ -1539,6 +1675,7 @@ double alph_change(double alph, double traptime,double tau)
 		case 1: //random alpha change with prob poisson
 			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
+				lattice[ind].traptime=0;
 				return ran3(&seed);	//return a random alpha
 			}
 			else
@@ -1549,6 +1686,7 @@ double alph_change(double alph, double traptime,double tau)
 		case 2: 
 			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
+				lattice[ind].traptime=0;
 				return (alph*(1-p)); //alpha goes exponentially to 0
 			}
 			else
@@ -1560,6 +1698,7 @@ double alph_change(double alph, double traptime,double tau)
 		case 3: 
 			if (rndnum > exp(-traptime*tau))	//if random number is bigger than poisson dist at t = traptime with rate 1/tau
 			{
+				lattice[ind].traptime=0;
 				return (alph+(1.-alph)*p); //alpha goes exponentially to 1
 			}
 			else
